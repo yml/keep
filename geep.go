@@ -3,6 +3,7 @@ package geep
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -64,6 +65,40 @@ func decryptPrivateKey(entity *openpgp.Entity, passphrase string) error {
 	return nil
 }
 
+func decodeFile(el openpgp.EntityList, fpath string) (io.Reader, error) {
+	// Get the encrypted file content as a []byte
+	f, err := os.Open(fpath)
+	if err != nil {
+		return nil, err
+	}
+	result, err := armor.Decode(f)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decrypt it with the contents of the private key
+	md, err := openpgp.ReadMessage(result.Body, el, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return md.UnverifiedBody, nil
+
+}
+
+// func promptTerminal(keys []openpgp.Key, symmetric bool) ([]byte, error) {
+// 	ID := ""
+// 	for _, k := range keys {
+// 		ID = k.PublicKey.KeyIdShortString()
+// 		fmt.Println("key :", ID)
+// 	}
+// 	fmt.Printf("Passphrase to unlock your key (%s) :", ID)
+// 	pw, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return pw, nil
+// }
+
 type Config struct {
 	Passphrase     string
 	SecringDir     string
@@ -71,6 +106,7 @@ type Config struct {
 	PasswordDir    string
 	EncryptKeysIds string
 	DecryptKeyIds  string
+	// PromptFunction openpgp.PromptFunction
 }
 
 func NewConfig() *Config {
@@ -86,6 +122,7 @@ func NewConfig() *Config {
 		PasswordDir:    pwdDir,
 		EncryptKeysIds: gpgkey,
 		DecryptKeyIds:  gpgkey,
+		// PromptFunction: promptTerminal,
 	}
 }
 
@@ -111,6 +148,14 @@ func (c *Config) DecryptedEntityList() (openpgp.EntityList, error) {
 	}
 	return el, nil
 
+}
+
+func (c *Config) DecodeFile(fpath string) (io.Reader, error) {
+	el, err := c.DecryptedEntityList()
+	if err != nil {
+		return nil, err
+	}
+	return decodeFile(el, fpath)
 }
 
 type Account struct {

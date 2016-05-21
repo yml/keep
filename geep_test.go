@@ -7,9 +7,6 @@ import (
 	"log"
 	"os"
 	"testing"
-
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -68,22 +65,12 @@ func Test_DecryptFile(t *testing.T) {
 		t.Errorf("An error occured while decrypting the privateKey %v", err)
 	}
 
-	// Get the encrypted file content as a []byte
-	f, err := os.Open(encryptedfile)
+	clearTextReader, err := decodeFile(el, encryptedfile)
 	if err != nil {
-		t.Errorf("an error occured while opening the encryptedfile %v", err)
-	}
-	result, err := armor.Decode(f)
-	if err != nil {
-		t.Errorf("An error occured while decoding the armored text: %v", err)
-	}
-	// Decrypt it with the contents of the private key
-	md, err := openpgp.ReadMessage(result.Body, el, nil, nil)
-	if err != nil {
-		t.Errorf("an error occured while reading the message %v", err)
+		t.Errorf("An error occured while decoding the file :", err)
 	}
 
-	bytess, err := ioutil.ReadAll(md.UnverifiedBody)
+	bytess, err := ioutil.ReadAll(clearTextReader)
 	if err != nil {
 		t.Errorf("an error occured while reading the clear text message %v", err)
 	}
