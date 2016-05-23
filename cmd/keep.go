@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 
 	"github.com/docopt/docopt-go"
-	"github.com/yml/geep"
+	"github.com/yml/keep"
 )
 
 var input string
 
-func newCliConfig() (*geep.Config, error) {
-	conf := geep.NewConfig()
+func newCliConfig() (*keep.Config, error) {
+	conf := keep.NewConfig()
 
 	if conf.EncryptKeysIds == "" {
 		fmt.Print("EncryptKeysIds: ")
@@ -27,19 +27,19 @@ func newCliConfig() (*geep.Config, error) {
 
 func main() {
 
-	usage := `Geep password manager
+	usage := `keep password manager
 
 Usage:
-	geep read [options] <file> [<dir>] [--print]
-	geep list [options] [<dir>]
-	geep add [options] [--prompt]
+	keep read [options] <file> [<dir>] [--print]
+	keep list [options] [<dir>]
+	keep add [options] [--prompt]
 
 Options:
 	-p --passphrase			Prompt a passphrase
 	-e --encrypt-to-key-ids	List of key ids the message should be encypted time_colon
 	-d --decrypt-to-key-ids	Private Key id to decrypt the message`
 
-	args, err := docopt.Parse(usage, nil, true, "geep cli version: 0.0.1", false)
+	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.1", false)
 	if err != nil {
 		log.Fatal("err: ", err)
 	}
@@ -66,7 +66,7 @@ Options:
 				os.Exit(1)
 			}
 
-			account, err := geep.NewAccountFromString(fname, string(content))
+			account, err := keep.NewAccountFromString(fname, string(content))
 			if err != nil {
 				fmt.Println("An error occured while creating and account from file content", err)
 				os.Exit(1)
