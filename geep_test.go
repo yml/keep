@@ -65,7 +65,7 @@ func Test_DecryptFile(t *testing.T) {
 		t.Errorf("An error occured while decrypting the privateKey %v", err)
 	}
 
-	clearTextReader, err := decodeFile(el, encryptedfile)
+	clearTextReader, err := decodeFile(el, GuessPromptFunction(), encryptedfile)
 	if err != nil {
 		t.Errorf("An error occured while decoding the file :", err)
 	}

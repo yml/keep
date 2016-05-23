@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -46,26 +46,7 @@ func filterEntityList(el openpgp.EntityList, recipients string) openpgp.EntityLi
 	return fel
 }
 
-func decryptPrivateKey(entity *openpgp.Entity, passphrase string) error {
-	// Get the passphrase and read the private key.
-	// Have not touched the encrypted string yet
-	passphrasebyte := []byte(passphrase)
-	log.Println("Decrypting private key using passphrase: ")
-	err := entity.PrivateKey.Decrypt(passphrasebyte)
-	if err != nil {
-		return nil
-	}
-	// TODO: I am not sure the loop below is required
-	for _, subkey := range entity.Subkeys {
-		err := subkey.PrivateKey.Decrypt(passphrasebyte)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func decodeFile(el openpgp.EntityList, fpath string) (io.Reader, error) {
+func decodeFile(el openpgp.EntityList, pf openpgp.PromptFunction, fpath string) (io.Reader, error) {
 	// Get the encrypted file content as a []byte
 	f, err := os.Open(fpath)
 	if err != nil {
@@ -77,7 +58,7 @@ func decodeFile(el openpgp.EntityList, fpath string) (io.Reader, error) {
 	}
 
 	// Decrypt it with the contents of the private key
-	md, err := openpgp.ReadMessage(result.Body, el, nil, nil)
+	md, err := openpgp.ReadMessage(result.Body, el, pf, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -85,44 +66,76 @@ func decodeFile(el openpgp.EntityList, fpath string) (io.Reader, error) {
 
 }
 
-// func promptTerminal(keys []openpgp.Key, symmetric bool) ([]byte, error) {
-// 	ID := ""
-// 	for _, k := range keys {
-// 		ID = k.PublicKey.KeyIdShortString()
-// 		fmt.Println("key :", ID)
-// 	}
-// 	fmt.Printf("Passphrase to unlock your key (%s) :", ID)
-// 	pw, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return pw, nil
-// }
+func promptFromString(passphrase string) openpgp.PromptFunction {
+	return func(keys []openpgp.Key, symmetric bool) ([]byte, error) {
+		for _, k := range keys {
+			ID := k.PrivateKey.KeyIdShortString()
+			fmt.Printf("Passphrase to unlock your key (%s) : ", ID)
+			err := k.PrivateKey.Decrypt([]byte(passphrase))
+			if err != nil {
+				fmt.Println("\nAn error occurred while decrypting the key", err)
+				continue
+			}
+			break
+
+		}
+		return nil, nil
+	}
+}
+
+func promptTerminal(keys []openpgp.Key, symmetric bool) ([]byte, error) {
+	for _, k := range keys {
+		ID := k.PrivateKey.KeyIdShortString()
+		fmt.Printf("Passphrase to unlock your key (%s) : ", ID)
+		pw, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			return nil, err
+		}
+		err = k.PrivateKey.Decrypt(pw)
+		if err != nil {
+			fmt.Println("\nAn error occurred while decrypting the key", err)
+			continue
+		}
+		break
+
+	}
+	return nil, nil
+}
+
+func GuessPromptFunction() openpgp.PromptFunction {
+	// if GPGPASSPHRASE in Environ use it else request it when needed
+	envs := os.Environ()
+	pf := promptTerminal
+	for _, val := range envs {
+		env := strings.Split(val, "=")
+		if len(env) == 2 && env[0] == "GPGPASSPHRASE" {
+			pf = promptFromString(env[1])
+			break
+		}
+	}
+	return pf
+}
 
 type Config struct {
-	Passphrase     string
 	SecringDir     string
 	PubringDir     string
 	PasswordDir    string
 	EncryptKeysIds string
-	DecryptKeyIds  string
-	// PromptFunction openpgp.PromptFunction
+	PromptFunction openpgp.PromptFunction
 }
 
 func NewConfig() *Config {
-	passphrase := os.Getenv("PASSPHRASE")
 	gpgkey := os.Getenv("GPGKEY")
 	pubring := os.ExpandEnv(pubringDefault)
 	secring := os.ExpandEnv(secringDefault)
 	pwdDir := os.ExpandEnv(passwordDirDefault)
+
 	return &Config{
-		Passphrase:     passphrase,
 		SecringDir:     secring,
 		PubringDir:     pubring,
 		PasswordDir:    pwdDir,
 		EncryptKeysIds: gpgkey,
-		DecryptKeyIds:  gpgkey,
-		// PromptFunction: promptTerminal,
+		PromptFunction: GuessPromptFunction(),
 	}
 }
 
@@ -140,12 +153,6 @@ func (c *Config) DecryptedEntityList() (openpgp.EntityList, error) {
 	if err != nil {
 		return nil, err
 	}
-	el = filterEntityList(el, c.DecryptKeyIds)
-	fmt.Println("el length", len(el))
-	err = decryptPrivateKey(el[0], c.Passphrase)
-	if err != nil {
-		return nil, err
-	}
 	return el, nil
 
 }
@@ -155,7 +162,7 @@ func (c *Config) DecodeFile(fpath string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decodeFile(el, fpath)
+	return decodeFile(el, c.PromptFunction, fpath)
 }
 
 type Account struct {
@@ -167,14 +174,14 @@ type Account struct {
 
 func NewAccountFromString(name, str string) (*Account, error) {
 	a := Account{Name: name}
-	n, err := fmt.Sscanf(
+	_, err := fmt.Sscanf(
 		str,
 		"%s\n%s\n%s", &a.Password, &a.Username, &a.Notes,
 	)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("n :", n)
+
 	return &a, nil
 }
 

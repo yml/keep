@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/docopt/docopt-go"
 	"github.com/yml/geep"
 )
@@ -18,25 +16,10 @@ var input string
 func newCliConfig() (*geep.Config, error) {
 	conf := geep.NewConfig()
 
-	if conf.DecryptKeyIds == "" {
-		fmt.Print("DecryptKeyIds: ")
-		fmt.Scanln(&input)
-		conf.DecryptKeyIds = input
-	}
 	if conf.EncryptKeysIds == "" {
-		fmt.Print("DecryptKeyIds: ")
+		fmt.Print("EncryptKeysIds: ")
 		fmt.Scanln(&input)
 		conf.EncryptKeysIds = input
-	}
-	// TODO: change the logic to --prompt instead of empty Passphrase
-	// or us PromptFunction from the openpgp package
-	if conf.Passphrase == "" {
-		fmt.Printf("Passphrase to unlock your key (%s) :", conf.DecryptKeyIds)
-		pw, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-		if err != nil {
-			return nil, err
-		}
-		conf.Passphrase = string(pw)
 	}
 	return conf, nil
 
@@ -71,7 +54,7 @@ Options:
 		fmt.Println("\nReading ...")
 		fname, ok := args["<file>"].(string)
 		if ok {
-			fmt.Println("fname:", fname)
+			fmt.Println("file name:", fname)
 			clearTextReader, err := conf.DecodeFile(filepath.Join(conf.PasswordDir, fname))
 			if err != nil {
 				fmt.Println("An error occured while building the clear text reader", err)
@@ -82,12 +65,14 @@ Options:
 				fmt.Println("An error occured while reading the file", err)
 				os.Exit(1)
 			}
-			fmt.Printf("content:\n%s\n", string(content))
+
 			account, err := geep.NewAccountFromString(fname, string(content))
 			if err != nil {
 				fmt.Println("An error occured while creating and account from file content", err)
 				os.Exit(1)
 			}
+
+			fmt.Println("\n\n")
 			fmt.Println("Name : ", account.Name)
 			fmt.Println("Username : ", account.Username)
 			fmt.Println("Notes : ", account.Notes)
@@ -101,6 +86,7 @@ Options:
 		fmt.Println("\nAdding ...")
 	}
 
-	fmt.Println(args)
-	fmt.Println(conf)
+	fmt.Println("\n\n* DEBUG ****************")
+	fmt.Println(args, "\n", conf)
+	fmt.Println("* DEBUG ****************")
 }
