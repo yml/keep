@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -117,11 +118,11 @@ func GuessPromptFunction() openpgp.PromptFunction {
 }
 
 type Config struct {
-	SecringDir     string
-	PubringDir     string
-	PasswordDir    string
-	EncryptKeysIds string
-	PromptFunction openpgp.PromptFunction
+	SecringDir       string
+	PubringDir       string
+	AccountDir       string
+	RecipientKeysIds string
+	PromptFunction   openpgp.PromptFunction
 }
 
 func NewConfig() *Config {
@@ -131,11 +132,11 @@ func NewConfig() *Config {
 	pwdDir := os.ExpandEnv(passwordDirDefault)
 
 	return &Config{
-		SecringDir:     secring,
-		PubringDir:     pubring,
-		PasswordDir:    pwdDir,
-		EncryptKeysIds: gpgkey,
-		PromptFunction: GuessPromptFunction(),
+		SecringDir:       secring,
+		PubringDir:       pubring,
+		AccountDir:       pwdDir,
+		RecipientKeysIds: gpgkey,
+		PromptFunction:   GuessPromptFunction(),
 	}
 }
 
@@ -144,7 +145,7 @@ func (c *Config) EncryptionRecipients() (openpgp.EntityList, error) {
 	if err != nil {
 		return nil, err
 	}
-	el = filterEntityList(el, c.EncryptKeysIds)
+	el = filterEntityList(el, c.RecipientKeysIds)
 	return el, nil
 }
 
@@ -163,6 +164,10 @@ func (c *Config) DecodeFile(fpath string) (io.Reader, error) {
 		return nil, err
 	}
 	return decodeFile(el, c.PromptFunction, fpath)
+}
+
+func (c *Config) ListFileInAccount() ([]os.FileInfo, error) {
+	return ioutil.ReadDir(c.AccountDir)
 }
 
 type Account struct {
