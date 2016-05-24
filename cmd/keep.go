@@ -17,7 +17,7 @@ func main() {
 	usage := `keep password manager
 
 Usage:
-	keep read [options] <file> [<dir>] [--print]
+	keep read [options] <file> [--print]
 	keep list [options] [<file>]
 	keep add [options]
 
