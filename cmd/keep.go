@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/docopt/docopt-go"
 	"github.com/yml/keep"
@@ -21,7 +19,7 @@ func main() {
 Usage:
 	keep read [options] <file> [<dir>] [--print]
 	keep list [options] [<file>]
-	keep add [options] [--prompt]
+	keep add [options]
 
 Options:
 	-r --recipients		List of key ids the message should be encypted time_colon
@@ -30,7 +28,8 @@ Options:
 
 	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.1", false)
 	if err != nil {
-		log.Fatal("err: ", err)
+		fmt.Println("Dopopt specification cannot be parsed", err)
+		os.Exit(1)
 	}
 
 	conf := keep.NewConfig()
@@ -60,15 +59,10 @@ Options:
 				fmt.Println("An error occured while building the clear text reader", err)
 				os.Exit(1)
 			}
-			content, err := ioutil.ReadAll(clearTextReader)
-			if err != nil {
-				fmt.Println("An error occured while reading the file", err)
-				os.Exit(1)
-			}
 
-			account, err := keep.NewAccountFromString(fname, string(content))
+			account, err := keep.NewAccountFromReader(fname, clearTextReader)
 			if err != nil {
-				fmt.Println("An error occured while creating and account from file content", err)
+				fmt.Println("An error occured while creating and account from the clear text reader", err)
 				os.Exit(1)
 			}
 
@@ -82,30 +76,50 @@ Options:
 		}
 	} else if val, ok := args["list"]; ok == true && val == true {
 		fmt.Println("Listing ...\n")
-		files, err := conf.ListFileInAccount()
-		if err != nil {
-			fmt.Printf("An error occured while listing the accounts", err)
-			os.Exit(1)
-		}
-
 		fileSubStr, ok := args["<file>"].(string)
 		if !ok {
 			fileSubStr = ""
 		}
 
+		files, err := conf.ListFileInAccount(fileSubStr)
+		if err != nil {
+			fmt.Printf("An error occured while listing the accounts", err)
+			os.Exit(1)
+		}
 		for _, file := range files {
-			fname := file.Name()
-			if strings.Contains(fname, fileSubStr) {
-				fmt.Println(fname)
-			}
+			fmt.Println(file.Name())
 		}
 
 	} else if val, ok := args["add"]; ok == true && val == true {
 		fmt.Println("Adding ...")
-		panic("Not Implemented")
+		account, err := keep.NewAccountFromConsole()
+		if err != nil {
+			fmt.Println("An error occured while retrieving account info from the console :", err)
+			os.Exit(1)
+		}
+		el, err := conf.EncryptionRecipients()
+		if err != nil {
+			fmt.Println("An error occured while retrieving the recipients", err)
+			os.Exit(1)
+		}
+		content, err := account.Encrypt(el)
+		if err != nil {
+			fmt.Println("An error occured while encrypting the account to bytes", err)
+			os.Exit(1)
+		}
+
+		fpath := filepath.Join(conf.AccountDir, account.Name)
+		if _, err := os.Stat(fpath); !os.IsNotExist(err) {
+			fmt.Printf("Account %s already exists\n", fpath)
+			os.Exit(1)
+		}
+		fmt.Println("Writing file :", fpath)
+		err = ioutil.WriteFile(fpath, content, 0600)
+		if err != nil {
+			fmt.Println("An error occured while writing the new account to disk", err)
+			os.Exit(1)
+		}
 	}
 
-	fmt.Println("\n\n* DEBUG ****************")
-	fmt.Println(args, "\n", conf)
-	fmt.Println("* DEBUG ****************")
+	// fmt.Println(args, "\n", conf)
 }

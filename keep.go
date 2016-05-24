@@ -1,12 +1,14 @@
 package keep
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+	"syscall"
 
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -166,8 +168,18 @@ func (c *Config) DecodeFile(fpath string) (io.Reader, error) {
 	return decodeFile(el, c.PromptFunction, fpath)
 }
 
-func (c *Config) ListFileInAccount() ([]os.FileInfo, error) {
-	return ioutil.ReadDir(c.AccountDir)
+func (c *Config) ListFileInAccount(fileSubStr string) ([]os.FileInfo, error) {
+	filteredFiles := make([]os.FileInfo, 0)
+	files, err := ioutil.ReadDir(c.AccountDir)
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range files {
+		if strings.Contains(f.Name(), fileSubStr) {
+			filteredFiles = append(filteredFiles, f)
+		}
+	}
+	return filteredFiles, nil
 }
 
 type Account struct {
@@ -177,7 +189,38 @@ type Account struct {
 	Notes    string
 }
 
-func NewAccountFromString(name, str string) (*Account, error) {
+func NewAccountFromConsole() (*Account, error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Enter Account Name: ")
+	name, _ := reader.ReadString('\n')
+
+	fmt.Print("Enter Username: ")
+	username, _ := reader.ReadString('\n')
+
+	fmt.Print("Enter Notes: ")
+	notes, _ := reader.ReadString('\n')
+
+	fmt.Print("Enter Password (`gen` to generate a random one): ")
+	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return nil, err
+	}
+	password := string(bytePassword)
+	if password == "gen" {
+		return nil, fmt.Errorf("Password generation Not Implemented")
+	}
+	account := Account{
+		Name:     strings.TrimSpace(name),
+		Username: strings.TrimSpace(username),
+		Password: strings.TrimSpace(password),
+		Notes:    strings.TrimSpace(notes),
+	}
+
+	return &account, nil
+}
+
+func NewAccountFromFileContent(name, str string) (*Account, error) {
 	a := Account{Name: name}
 	_, err := fmt.Sscanf(
 		str,
@@ -188,6 +231,18 @@ func NewAccountFromString(name, str string) (*Account, error) {
 	}
 
 	return &a, nil
+}
+
+func NewAccountFromReader(name string, r io.Reader) (*Account, error) {
+	content, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	account, err := NewAccountFromFileContent(name, string(content))
+	if err != nil {
+		return nil, err
+	}
+	return account, nil
 }
 
 func (a Account) Content() []byte {

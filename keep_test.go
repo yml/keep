@@ -112,7 +112,7 @@ func Test_AccountString(t *testing.T) {
 
 func Test_NewAccount(t *testing.T) {
 	s := "p\nu\nn\n"
-	a, err := NewAccountFromString("nameAccount", s)
+	a, err := NewAccountFromFileContent("nameAccount", s)
 	if err != nil {
 		t.Errorf("An error occured while scanning an account from a string : %s", err)
 	}
