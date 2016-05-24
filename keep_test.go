@@ -58,7 +58,7 @@ func Test_filterEntityList(t *testing.T) {
 }
 
 func Test_DecryptFile(t *testing.T) {
-	encryptedfile := "test_data/yml_test"
+	encryptedfile := "test_data/passwords/account1"
 	c := NewConfig()
 	el, err := c.DecryptedEntityList()
 	if err != nil {

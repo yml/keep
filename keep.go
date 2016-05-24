@@ -69,7 +69,6 @@ func decodeFile(el openpgp.EntityList, pf openpgp.PromptFunction, fpath string) 
 		return nil, err
 	}
 	return md.UnverifiedBody, nil
-
 }
 
 func promptFromString(passphrase string) openpgp.PromptFunction {
@@ -132,7 +131,6 @@ func promptTerminal(keys []openpgp.Key, symmetric bool) ([]byte, error) {
 		return pw, nil
 	}
 	return nil, fmt.Errorf("Unable to find key")
-
 }
 
 func GuessPromptFunction() openpgp.PromptFunction {
@@ -257,13 +255,10 @@ func NewAccountFromConsole() (*Account, error) {
 
 func NewAccountFromFileContent(name, str string) (*Account, error) {
 	a := Account{Name: name}
-	_, err := fmt.Sscanf(
-		str,
-		"%s\n%s\n%s", &a.Password, &a.Username, &a.Notes,
-	)
-	if err != nil {
-		return nil, err
-	}
+	chunks := strings.Split(str, "\n")
+	a.Username = chunks[0]
+	a.Password = chunks[1]
+	a.Notes = chunks[2]
 
 	return &a, nil
 }
@@ -281,7 +276,7 @@ func NewAccountFromReader(name string, r io.Reader) (*Account, error) {
 }
 
 func (a Account) Content() []byte {
-	return []byte(fmt.Sprintf("%s\n%s\n%s\n", a.Password, a.Username, a.Notes))
+	return []byte(fmt.Sprintf("%s\n%s\n%s", a.Password, a.Username, a.Notes))
 }
 
 func (a *Account) Encrypt(el openpgp.EntityList) ([]byte, error) {
