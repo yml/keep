@@ -3,12 +3,15 @@ package keep
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 	"syscall"
+
+	"github.com/jcmdev0/gpgagent"
 
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -77,12 +80,39 @@ func promptFromString(passphrase string) openpgp.PromptFunction {
 			err := k.PrivateKey.Decrypt([]byte(passphrase))
 			if err != nil {
 				fmt.Println("\nAn error occurred while decrypting the key", err)
-				continue
+				return nil, err
 			}
-			break
-
+			return []byte(passphrase), nil
 		}
-		return nil, nil
+		return nil, fmt.Errorf("Unable to find key")
+	}
+}
+
+func promptFunctionGpgAgent(conn *gpgagent.Conn) openpgp.PromptFunction {
+	return func(keys []openpgp.Key, symmetric bool) ([]byte, error) {
+		defer conn.Close()
+
+		for _, key := range keys {
+			cacheId := strings.ToUpper(hex.EncodeToString(key.PublicKey.Fingerprint[:]))
+			fmt.Println("short key", key.PrivateKey.KeyIdShortString())
+
+			request := gpgagent.PassphraseRequest{CacheKey: cacheId}
+			passphrase, err := conn.GetPassphrase(&request)
+			if err != nil {
+				return nil, err
+			}
+			err = key.PrivateKey.Decrypt([]byte(passphrase))
+			if err != nil {
+				err := conn.RemoveFromCache(cacheId)
+				if err != nil {
+					fmt.Println("cannot remove the key from cache", err)
+				}
+				fmt.Println("can t decrypt", err)
+				return nil, err
+			}
+			return []byte(passphrase), nil
+		}
+		return nil, fmt.Errorf("Unable to find key")
 	}
 }
 
@@ -97,18 +127,23 @@ func promptTerminal(keys []openpgp.Key, symmetric bool) ([]byte, error) {
 		err = k.PrivateKey.Decrypt(pw)
 		if err != nil {
 			fmt.Println("\nAn error occurred while decrypting the key", err)
-			continue
+			return nil, err
 		}
-		break
-
+		return pw, nil
 	}
-	return nil, nil
+	return nil, fmt.Errorf("Unable to find key")
+
 }
 
 func GuessPromptFunction() openpgp.PromptFunction {
+	pf := promptTerminal
+	conn, err := gpgagent.NewGpgAgentConn()
+	if err == nil {
+		pf = promptFunctionGpgAgent(conn)
+	}
+
 	// if GPGPASSPHRASE in Environ use it else request it when needed
 	envs := os.Environ()
-	pf := promptTerminal
 	for _, val := range envs {
 		env := strings.Split(val, "=")
 		if len(env) == 2 && env[0] == "GPGPASSPHRASE" {

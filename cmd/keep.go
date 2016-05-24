@@ -49,7 +49,7 @@ Options:
 	}
 
 	if val, ok := args["read"]; ok == true && val == true {
-		fmt.Println("Reading ...")
+		fmt.Println("Reading ...\n")
 		fname, ok := args["<file>"].(string)
 		if ok {
 			fpath := filepath.Join(conf.AccountDir, fname)
@@ -66,7 +66,6 @@ Options:
 				os.Exit(1)
 			}
 
-			fmt.Println("\n\n")
 			fmt.Println("Name : ", account.Name)
 			fmt.Println("Username : ", account.Username)
 			fmt.Println("Notes : ", account.Notes)
@@ -91,7 +90,7 @@ Options:
 		}
 
 	} else if val, ok := args["add"]; ok == true && val == true {
-		fmt.Println("Adding ...")
+		fmt.Println("Adding ...\n")
 		account, err := keep.NewAccountFromConsole()
 		if err != nil {
 			fmt.Println("An error occured while retrieving account info from the console :", err)
