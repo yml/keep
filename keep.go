@@ -22,7 +22,7 @@ import (
 const (
 	secringDefault     = "$HOME/.gnupg/secring.gpg"
 	pubringDefault     = "$HOME/.gnupg/pubring.gpg"
-	passwordDirDefault = "$HOME/.kip/passwords"
+	passwordDirDefault = "$HOME/.keep/passwords"
 )
 
 func getKeyRing(keyringPath string) (el openpgp.EntityList, err error) {
@@ -172,6 +172,16 @@ func NewConfig() *Config {
 		PubringDir:       pubring,
 		AccountDir:       pwdDir,
 		RecipientKeysIds: gpgkey,
+		PromptFunction:   GuessPromptFunction(),
+	}
+}
+
+func NewConfigFromProfile(p *Profile) *Config {
+	return &Config{
+		SecringDir:       p.SecringDir,
+		PubringDir:       p.PubringDir,
+		AccountDir:       p.AccountDir,
+		RecipientKeysIds: p.RecipientKeysIds,
 		PromptFunction:   GuessPromptFunction(),
 	}
 }

@@ -24,6 +24,7 @@ Usage:
 Options:
 	-r --recipients		List of key ids the message should be encypted time_colon
 	-d --account-dir	Account Directory
+	-p --profile		Profile name
 `
 
 	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.1", false)
@@ -32,7 +33,32 @@ Options:
 		os.Exit(1)
 	}
 
-	conf := keep.NewConfig()
+	store, err := keep.LoadProfileStore()
+	if err != nil {
+		fmt.Println("An error occured while loading the profile store :", err)
+		os.Exit(1)
+	}
+
+	// defaulting to the first profile
+	profile := store[0]
+	profileName, ok := args["--profile"].(string)
+	if ok {
+		profileFound := false
+		for _, p := range store {
+			if profileName == p.Name {
+				profile = p
+				profileFound = true
+				break
+			}
+		}
+		if !profileFound {
+			fmt.Printf("Profile (%s) not found\n", profileName)
+			os.Exit(1)
+		}
+	}
+	fmt.Println("Using profile : ", profile.Name)
+
+	conf := keep.NewConfigFromProfile(&profile)
 	// Overriding the config with information from the cli parameters
 	accountDir, ok := args["--account-dir"].(string)
 	if ok {
@@ -109,6 +135,5 @@ Options:
 			os.Exit(1)
 		}
 	}
-
 	// fmt.Println(args, "\n", conf)
 }
