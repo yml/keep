@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "SNSgdp5ShDZ57VZqBkQ0PXJCJIM=",
+			"path": "github.com/atotto/clipboard",
+			"revision": "bb272b845f1112e10117e3e45ce39f690c0001ad",
+			"revisionTime": "2016-02-19T03:44:21Z"
+		},
+		{
 			"checksumSHA1": "F+YOz/6ymsuIxUy511OAdxjyhRI=",
 			"path": "github.com/docopt/docopt-go",
 			"revision": "784ddc588536785e7299f7272f39101f7faccc3f",

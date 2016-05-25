@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/atotto/clipboard"
 	"github.com/docopt/docopt-go"
 	"github.com/yml/keep"
 )
@@ -25,6 +26,7 @@ Options:
 	-r --recipients		List of key ids the message should be encypted time_colon
 	-d --account-dir	Account Directory
 	-p --profile		Profile name
+    -c --clipboard      Copy password to the clipboard
 `
 
 	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.1", false)
@@ -92,6 +94,20 @@ Options:
 			if printOpt, ok := args["--print"]; ok && printOpt.(bool) == true {
 				fmt.Println("Password : ", account.Password)
 			}
+
+			copyToclipboard := false
+			if val, ok := args["-c"]; ok == true && val == true {
+				copyToclipboard = true
+			} else if val, ok := args["--clipboard"]; ok == true && val == true {
+				copyToclipboard = true
+			}
+			if copyToclipboard {
+				err = clipboard.WriteAll(account.Password)
+				if err != nil {
+					fmt.Println("An error occured while writing the password to the clipboard", err)
+					os.Exit(1)
+				}
+			}
 		}
 	} else if val, ok := args["list"]; ok == true && val == true {
 		fmt.Println("Listing ...\n")
@@ -135,5 +151,5 @@ Options:
 			os.Exit(1)
 		}
 	}
-	// fmt.Println(args, "\n", conf)
+	fmt.Println(args, "\n", conf)
 }
