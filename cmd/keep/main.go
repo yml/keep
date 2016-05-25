@@ -54,13 +54,7 @@ Options:
 		if ok {
 			fpath := filepath.Join(conf.AccountDir, fname)
 			fmt.Println("file name:", fpath)
-			clearTextReader, err := conf.DecodeFile(fpath)
-			if err != nil {
-				fmt.Println("An error occured while building the clear text reader", err)
-				os.Exit(1)
-			}
-
-			account, err := keep.NewAccountFromReader(fname, clearTextReader)
+			account, err := keep.NewAccountFromFile(conf, fpath)
 			if err != nil {
 				fmt.Println("An error occured while creating and account from the clear text reader", err)
 				os.Exit(1)
@@ -91,17 +85,13 @@ Options:
 
 	} else if val, ok := args["add"]; ok == true && val == true {
 		fmt.Println("Adding ...\n")
-		account, err := keep.NewAccountFromConsole()
+		account, err := keep.NewAccountFromConsole(conf)
 		if err != nil {
 			fmt.Println("An error occured while retrieving account info from the console :", err)
 			os.Exit(1)
 		}
-		el, err := conf.EncryptionRecipients()
-		if err != nil {
-			fmt.Println("An error occured while retrieving the recipients", err)
-			os.Exit(1)
-		}
-		content, err := account.Encrypt(el)
+
+		content, err := account.Encrypt()
 		if err != nil {
 			fmt.Println("An error occured while encrypting the account to bytes", err)
 			os.Exit(1)

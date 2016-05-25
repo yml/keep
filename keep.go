@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -216,13 +217,14 @@ func (c *Config) ListFileInAccount(fileSubStr string) ([]os.FileInfo, error) {
 }
 
 type Account struct {
+	config   *Config
 	Name     string
 	Username string
 	Password string
 	Notes    string
 }
 
-func NewAccountFromConsole() (*Account, error) {
+func NewAccountFromConsole(conf *Config) (*Account, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter Account Name: ")
@@ -244,6 +246,7 @@ func NewAccountFromConsole() (*Account, error) {
 		return nil, fmt.Errorf("Password generation Not Implemented")
 	}
 	account := Account{
+		config:   conf,
 		Name:     strings.TrimSpace(name),
 		Username: strings.TrimSpace(username),
 		Password: strings.TrimSpace(password),
@@ -253,22 +256,34 @@ func NewAccountFromConsole() (*Account, error) {
 	return &account, nil
 }
 
-func NewAccountFromFileContent(name, str string) (*Account, error) {
-	a := Account{Name: name}
+func NewAccountFromFile(conf *Config, fpath string) (*Account, error) {
+	clearTextReader, err := conf.DecodeFile(fpath)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewAccountFromReader(conf, filepath.Base(fpath), clearTextReader)
+}
+
+func NewAccountFromFileContent(conf *Config, name, str string) (*Account, error) {
+	a := Account{
+		config: conf,
+		Name:   name,
+	}
 	chunks := strings.Split(str, "\n")
-	a.Username = chunks[0]
-	a.Password = chunks[1]
+	a.Password = chunks[0]
+	a.Username = chunks[1]
 	a.Notes = chunks[2]
 
 	return &a, nil
 }
 
-func NewAccountFromReader(name string, r io.Reader) (*Account, error) {
+func NewAccountFromReader(conf *Config, name string, r io.Reader) (*Account, error) {
 	content, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
-	account, err := NewAccountFromFileContent(name, string(content))
+	account, err := NewAccountFromFileContent(conf, name, string(content))
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +294,12 @@ func (a Account) Content() []byte {
 	return []byte(fmt.Sprintf("%s\n%s\n%s", a.Password, a.Username, a.Notes))
 }
 
-func (a *Account) Encrypt(el openpgp.EntityList) ([]byte, error) {
+func (a *Account) Encrypt() ([]byte, error) {
+	el, err := a.config.EncryptionRecipients()
+	if err != nil {
+		return nil, err
+	}
+
 	buf := bytes.NewBuffer(nil)
 	aw, err := armor.Encode(
 		buf,

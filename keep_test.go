@@ -82,14 +82,14 @@ func Test_DecryptFile(t *testing.T) {
 
 func Test_EncryptFile(t *testing.T) {
 	c := NewConfig()
-	el, err := c.EncryptionRecipients()
 	a := Account{
+		config:   c,
 		Name:     "name",
 		Username: "username",
 		Password: "password",
 		Notes:    "note",
 	}
-	crypt, err := a.Encrypt(el)
+	crypt, err := a.Encrypt()
 	if err != nil {
 		t.Errorf("An error occured while encrypting the account : %v", err)
 	}
@@ -105,14 +105,14 @@ func Test_AccountString(t *testing.T) {
 	got := a.Content()
 	expected := []byte("p\nu\nn")
 
-	if bytes.Equal(expected, got) {
+	if !bytes.Equal(expected, got) {
 		t.Errorf("got : %s - expected : %s", got, expected)
 	}
 }
 
 func Test_NewAccount(t *testing.T) {
-	s := "p\nu\nn\n"
-	a, err := NewAccountFromFileContent("nameAccount", s)
+	s := "p\nu\nn"
+	a, err := NewAccountFromFileContent(nil, "nameAccount", s)
 	if err != nil {
 		t.Errorf("An error occured while scanning an account from a string : %s", err)
 	}
