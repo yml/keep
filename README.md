@@ -8,7 +8,9 @@
 
 The filename is the account name.
 
-**Notes :** You can ditch kip at any time.  Browse your files: 
+**Notes :** 
+You can stop using keep and and leave with your data when ever you want.
+Browse your files (accounts) : 
 
 * `ls ~/.keep/passwords/`
 
