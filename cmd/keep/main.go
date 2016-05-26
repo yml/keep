@@ -23,10 +23,10 @@ Usage:
 	keep add [options]
 
 Options:
-	-r --recipients		List of key ids the message should be encypted time_colon
-	-d --account-dir	Account Directory
-	-p --profile		Profile name
-    -c --clipboard      Copy password to the clipboard
+	-r --recipients=<keys>  List of key ids the message should be encypted 
+	-d --account-dir=<dir>  Account Directory
+	-p --profile=<profile>  Profile name
+	-c --clipboard          Copy password to the clipboard
 `
 
 	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.1", false)
