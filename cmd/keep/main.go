@@ -151,5 +151,5 @@ Options:
 			os.Exit(1)
 		}
 	}
-	fmt.Println(args, "\n", conf)
+	// fmt.Println(args, "\n", conf)
 }
