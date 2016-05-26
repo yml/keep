@@ -16,7 +16,7 @@ Browse your files (accounts) :
 
 Display contents manually:
 
-* `gpg -d ~/.kip/passwords/example.com`
+* `gpg -d ~/.keep/passwords/example.com`
 
 
 `Keep` let you manage multiple **profiles**. A Profile is composed of :
@@ -63,7 +63,7 @@ cat ~/.keep/keep.conf
                 "Name": "yml",
                 "SecringDir": "/home/yml/.gnupg/secring.gpg",
                 "PubringDir": "/home/yml/.gnupg/pubring.gpg",
-                "AccountDir": "/home/yml/.kip/passwords",
+                "AccountDir": "/home/yml/.keep/passwords",
                 "RecipientKeysIds": "6A8D785C"
         },
         {
