@@ -23,10 +23,10 @@ Usage:
 	keep add [options]
 
 Options:
-	-r --recipients=<keys>  List of key ids the message should be encypted 
-	-d --account-dir=<dir>  Account Directory
-	-p --profile=<profile>  Profile name
-	-c --clipboard          Copy password to the clipboard
+	-r --recipients=KEYS   List of key ids the message should be encypted 
+	-d --dir=PATH          Account Directory
+	-p --profile=NAME      Profile name
+	-c --clipboard         Copy password to the clipboard
 `
 
 	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.1", false)
@@ -62,7 +62,7 @@ Options:
 
 	conf := keep.NewConfigFromProfile(&profile)
 	// Overriding the config with information from the cli parameters
-	accountDir, ok := args["--account-dir"].(string)
+	accountDir, ok := args["--dir"].(string)
 	if ok {
 		conf.AccountDir = accountDir
 	}

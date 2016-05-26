@@ -1,15 +1,26 @@
 # keep
 
-`keep` is a simple password manager that is built on top of `opengp`. Each account is save in a text file that contains 3 elements separated by a `\n`:
+`keep` is a simple password manager that is built on top of `openPGP`. Each account is save in a text file that contains 3 elements separated by a `\n`:
 
-* Username
 * Password
+* Username
 * Notes
 
 The filename is the account name.
 
-**Notes :** You can ditch kip at any time.  Browse your files: ls ~/.kip/passwords/
-Display contents manually: gpg -d ~/.kip/passwords/example.com
+**Notes :** You can ditch kip at any time.  Browse your files: 
+
+* `ls ~/.keep/passwords/`
+
+Display contents manually:
+
+* `gpg -d ~/.kip/passwords/example.com`
+
+
+`Keep` let you manage multiple **profiles**. A Profile is composed of :
+
+* A directory where the passwords are saved. The directory can be shared between users. The username, note and password are safely encrypted but the account name is visible by anyone that has access to the shared folder.
+* `RecipientKeysIds` A space separated list of GPG Key Id that the account should be encrypted to.
 
 ## Install
 
@@ -34,9 +45,35 @@ Usage:
         keep add [options]
 
 Options:
-        -r --recipients         List of key ids the message should be encypted time_colon
-        -d --account-dir        Account Directory
+        -r --recipients=KEYS   List of key ids the message should be encypted 
+        -d --dir=PATH          Account Directory
+        -p --profile=NAME      Profile name
+        -c --clipboard         Copy password to the clipboard
+
 ```
+
+When you first use `keep` a configuration file is created in `$HOME/.keep/keep.conf`. This JSON file contains the list of profiles:
+
+```
+cat ~/.keep/keep.conf 
+[
+        {
+                "Name": "yml",
+                "SecringDir": "/home/yml/.gnupg/secring.gpg",
+                "PubringDir": "/home/yml/.gnupg/pubring.gpg",
+                "AccountDir": "/home/yml/.kip/passwords",
+                "RecipientKeysIds": "6A8D785C"
+        },
+        {
+                "Name": "company",
+                "SecringDir": "/home/yml/.gnupg/secring.gpg",
+                "PubringDir": "/home/yml/.gnupg/pubring.gpg",
+                "AccountDir": "/home/yml/Dropbox/company/secrets/passwords",
+                "RecipientKeysIds": "6A8D785C <add the list of space separated key>"
+        }
+
+]
+``` 
 
 ## Test
 
@@ -59,6 +96,7 @@ GPGKEY=6A8D785C GPGPASSPHRASE=keep go test --race --cover -v .
 
 This project takes advantage of the following "vendored" packages :
 
+*  github.com/atotto/clipboard
 *  github.com/docopt/docopt-go            
 *  github.com/jcmdev0/gpgagent            
 *  golang.org/x/crypto/cast5              
