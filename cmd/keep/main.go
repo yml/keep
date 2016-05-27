@@ -116,7 +116,7 @@ Options:
 			fileSubStr = ""
 		}
 
-		files, err := conf.ListFileInAccount(fileSubStr)
+		files, err := conf.ListAccountFiles(fileSubStr)
 		if err != nil {
 			fmt.Printf("An error occured while listing the accounts", err)
 			os.Exit(1)

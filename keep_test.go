@@ -60,14 +60,14 @@ func Test_filterEntityList(t *testing.T) {
 func Test_DecryptFile(t *testing.T) {
 	encryptedfile := "test_data/passwords/account1"
 	c := NewConfig()
-	el, err := c.DecryptedEntityList()
+	el, err := c.EntityListWithSecretKey()
 	if err != nil {
 		t.Errorf("An error occured while decrypting the privateKey %v", err)
 	}
 
 	clearTextReader, err := decodeFile(el, GuessPromptFunction(), encryptedfile)
 	if err != nil {
-		t.Errorf("An error occured while decoding the file :", err)
+		t.Errorf("An error occured while decoding the file : %s", err)
 	}
 
 	bytess, err := ioutil.ReadAll(clearTextReader)
@@ -102,7 +102,7 @@ func Test_AccountString(t *testing.T) {
 		Password: "p",
 		Notes:    "n",
 	}
-	got := a.Content()
+	got := a.Bytes()
 	expected := []byte("p\nu\nn")
 
 	if !bytes.Equal(expected, got) {
@@ -112,7 +112,7 @@ func Test_AccountString(t *testing.T) {
 
 func Test_NewAccount(t *testing.T) {
 	s := "p\nu\nn"
-	a, err := NewAccountFromFileContent(nil, "nameAccount", s)
+	a, err := newAccountFromFileContent(nil, "nameAccount", s)
 	if err != nil {
 		t.Errorf("An error occured while scanning an account from a string : %s", err)
 	}

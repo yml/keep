@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 )
 
+// Profile represents the information that can be persited to disk of a Config.
 type Profile struct {
 	Name             string
 	SecringDir       string
@@ -16,6 +17,7 @@ type Profile struct {
 	RecipientKeysIds string
 }
 
+// DefaultProfile returns the a Profile with customized information for a user.
 func DefaultProfile() *Profile {
 	gpgkey := os.Getenv("GPGKEY")
 	pubring := os.ExpandEnv(pubringDefault)
@@ -32,8 +34,10 @@ func DefaultProfile() *Profile {
 
 }
 
+// ProfileStore is type alias that we used to store Profile in the configuration file.
 type ProfileStore []Profile
 
+// GetConfigPaths returns the paths for the contifuration file and the accountDir.
 func GetConfigPaths() (string, string) {
 	accountDir := os.ExpandEnv(passwordDirDefault)
 	return filepath.Join(filepath.Dir(accountDir), "keep.conf"), accountDir
@@ -64,6 +68,7 @@ func initProfileStore() (ProfileStore, error) {
 	return store, nil
 }
 
+// LoadProfileStore returns the ProfileStore with the information found in the configuration file.
 func LoadProfileStore() (ProfileStore, error) {
 	configFile, _ := GetConfigPaths()
 

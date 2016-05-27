@@ -93,17 +93,17 @@ func promptFunctionGpgAgent(conn *gpgagent.Conn) openpgp.PromptFunction {
 		defer conn.Close()
 
 		for _, key := range keys {
-			cacheId := strings.ToUpper(hex.EncodeToString(key.PublicKey.Fingerprint[:]))
+			cacheID := strings.ToUpper(hex.EncodeToString(key.PublicKey.Fingerprint[:]))
 			fmt.Println("short key", key.PrivateKey.KeyIdShortString())
 
-			request := gpgagent.PassphraseRequest{CacheKey: cacheId}
+			request := gpgagent.PassphraseRequest{CacheKey: cacheID}
 			passphrase, err := conn.GetPassphrase(&request)
 			if err != nil {
 				return nil, err
 			}
 			err = key.PrivateKey.Decrypt([]byte(passphrase))
 			if err != nil {
-				err := conn.RemoveFromCache(cacheId)
+				err := conn.RemoveFromCache(cacheID)
 				if err != nil {
 					fmt.Println("cannot remove the key from cache", err)
 				}
@@ -134,6 +134,7 @@ func promptTerminal(keys []openpgp.Key, symmetric bool) ([]byte, error) {
 	return nil, fmt.Errorf("Unable to find key")
 }
 
+// GuessPromptFunction is a function that returns an openpgp.PromptFunction well suited for the context.
 func GuessPromptFunction() openpgp.PromptFunction {
 	pf := promptTerminal
 	conn, err := gpgagent.NewGpgAgentConn()
@@ -153,6 +154,7 @@ func GuessPromptFunction() openpgp.PromptFunction {
 	return pf
 }
 
+// Config represents the configuration required to work with GPG.
 type Config struct {
 	SecringDir       string
 	PubringDir       string
@@ -161,6 +163,7 @@ type Config struct {
 	PromptFunction   openpgp.PromptFunction
 }
 
+// NewConfig returns an initialized Config.
 func NewConfig() *Config {
 	gpgkey := os.Getenv("GPGKEY")
 	pubring := os.ExpandEnv(pubringDefault)
@@ -176,6 +179,7 @@ func NewConfig() *Config {
 	}
 }
 
+// NewConfigFromProfile returns an initialized Config with the information copied from a Profile.
 func NewConfigFromProfile(p *Profile) *Config {
 	return &Config{
 		SecringDir:       p.SecringDir,
@@ -186,6 +190,7 @@ func NewConfigFromProfile(p *Profile) *Config {
 	}
 }
 
+// EncryptionRecipients returns the openpgp.EntityList corresponding to the RecipientKeysIds from the Config.
 func (c *Config) EncryptionRecipients() (openpgp.EntityList, error) {
 	el, err := getKeyRing(c.PubringDir)
 	if err != nil {
@@ -195,7 +200,8 @@ func (c *Config) EncryptionRecipients() (openpgp.EntityList, error) {
 	return el, nil
 }
 
-func (c *Config) DecryptedEntityList() (openpgp.EntityList, error) {
+// EntityListWithSecretKey returns the openpgp.EntityList contains in Secring.
+func (c *Config) EntityListWithSecretKey() (openpgp.EntityList, error) {
 	el, err := getKeyRing(c.SecringDir)
 	if err != nil {
 		return nil, err
@@ -204,16 +210,18 @@ func (c *Config) DecryptedEntityList() (openpgp.EntityList, error) {
 
 }
 
+// DecodeFile returns an io.Reader from which the content of the message can be read in clear text.
 func (c *Config) DecodeFile(fpath string) (io.Reader, error) {
-	el, err := c.DecryptedEntityList()
+	el, err := c.EntityListWithSecretKey()
 	if err != nil {
 		return nil, err
 	}
 	return decodeFile(el, c.PromptFunction, fpath)
 }
 
-func (c *Config) ListFileInAccount(fileSubStr string) ([]os.FileInfo, error) {
-	filteredFiles := make([]os.FileInfo, 0)
+// ListAccountFiles returns the list of Files stored in the AccountDir.
+func (c *Config) ListAccountFiles(fileSubStr string) ([]os.FileInfo, error) {
+	var filteredFiles []os.FileInfo
 	files, err := ioutil.ReadDir(c.AccountDir)
 	if err != nil {
 		return nil, err
@@ -226,6 +234,7 @@ func (c *Config) ListFileInAccount(fileSubStr string) ([]os.FileInfo, error) {
 	return filteredFiles, nil
 }
 
+// Account represents an Account
 type Account struct {
 	config   *Config
 	Name     string
@@ -234,6 +243,7 @@ type Account struct {
 	Notes    string
 }
 
+// NewAccountFromConsole returns an Account built with the elements collected by interacting with the user.
 func NewAccountFromConsole(conf *Config) (*Account, error) {
 	reader := bufio.NewReader(os.Stdin)
 
@@ -266,6 +276,7 @@ func NewAccountFromConsole(conf *Config) (*Account, error) {
 	return &account, nil
 }
 
+// NewAccountFromFile returns an Account as described by a file in the accountDir.
 func NewAccountFromFile(conf *Config, fpath string) (*Account, error) {
 	clearTextReader, err := conf.DecodeFile(fpath)
 	if err != nil {
@@ -275,7 +286,7 @@ func NewAccountFromFile(conf *Config, fpath string) (*Account, error) {
 	return NewAccountFromReader(conf, filepath.Base(fpath), clearTextReader)
 }
 
-func NewAccountFromFileContent(conf *Config, name, str string) (*Account, error) {
+func newAccountFromFileContent(conf *Config, name, str string) (*Account, error) {
 	a := Account{
 		config: conf,
 		Name:   name,
@@ -288,22 +299,27 @@ func NewAccountFromFileContent(conf *Config, name, str string) (*Account, error)
 	return &a, nil
 }
 
+// NewAccountFromReader returns an account with the provided element.
+// The reader is expected to returns bytes int the appropriate format :
+//   * []byte(password\nusername\nnotes)
 func NewAccountFromReader(conf *Config, name string, r io.Reader) (*Account, error) {
 	content, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
-	account, err := NewAccountFromFileContent(conf, name, string(content))
+	account, err := newAccountFromFileContent(conf, name, string(content))
 	if err != nil {
 		return nil, err
 	}
 	return account, nil
 }
 
-func (a Account) Content() []byte {
+// Bytes returns a slice of byte representing the account.
+func (a Account) Bytes() []byte {
 	return []byte(fmt.Sprintf("%s\n%s\n%s", a.Password, a.Username, a.Notes))
 }
 
+// Encrypt returns the encrypted byte slice for an account.
 func (a *Account) Encrypt() ([]byte, error) {
 	el, err := a.config.EncryptionRecipients()
 	if err != nil {
@@ -321,7 +337,7 @@ func (a *Account) Encrypt() ([]byte, error) {
 		return nil, err
 	}
 
-	_, err = w.Write(a.Content())
+	_, err = w.Write(a.Bytes())
 	if err != nil {
 		return nil, err
 	}
