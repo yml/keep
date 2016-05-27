@@ -234,6 +234,7 @@ func (c *Config) DecodeFile(fpath string) (io.Reader, error) {
 }
 
 // ListAccountFiles returns the list of Files stored in the AccountDir.
+// The list is filtered in a case in sensitive way.
 func (c *Config) ListAccountFiles(fileSubStr string) ([]os.FileInfo, error) {
 	var filteredFiles []os.FileInfo
 	files, err := ioutil.ReadDir(c.AccountDir)
@@ -241,7 +242,7 @@ func (c *Config) ListAccountFiles(fileSubStr string) ([]os.FileInfo, error) {
 		return nil, err
 	}
 	for _, f := range files {
-		if strings.Contains(f.Name(), fileSubStr) {
+		if strings.Contains(strings.ToLower(f.Name()), strings.ToLower(fileSubStr)) {
 			filteredFiles = append(filteredFiles, f)
 		}
 	}
