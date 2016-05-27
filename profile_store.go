@@ -10,11 +10,12 @@ import (
 
 // Profile represents the information that can be persited to disk of a Config.
 type Profile struct {
-	Name             string
-	SecringDir       string
-	PubringDir       string
-	AccountDir       string
-	RecipientKeysIds string
+	Name            string
+	SecringDir      string
+	PubringDir      string
+	AccountDir      string
+	RecipientKeyIds string
+	SignerKeyID     string
 }
 
 // DefaultProfile returns the a Profile with customized information for a user.
@@ -25,13 +26,13 @@ func DefaultProfile() *Profile {
 	accountDir := os.ExpandEnv(passwordDirDefault)
 
 	return &Profile{
-		Name:             "default",
-		SecringDir:       secring,
-		PubringDir:       pubring,
-		AccountDir:       accountDir,
-		RecipientKeysIds: gpgkey,
+		Name:            "default",
+		SecringDir:      secring,
+		PubringDir:      pubring,
+		AccountDir:      accountDir,
+		RecipientKeyIds: gpgkey,
+		SignerKeyID:     gpgkey,
 	}
-
 }
 
 // ProfileStore is type alias that we used to store Profile in the configuration file.

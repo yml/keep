@@ -64,16 +64,17 @@ cat ~/.keep/keep.conf
                 "SecringDir": "/home/yml/.gnupg/secring.gpg",
                 "PubringDir": "/home/yml/.gnupg/pubring.gpg",
                 "AccountDir": "/home/yml/.keep/passwords",
-                "RecipientKeysIds": "6A8D785C"
+                "RecipientKeyIds": "6A8D785C",
+                "SignerKeyID": "6A8D785C"
         },
         {
                 "Name": "company",
                 "SecringDir": "/home/yml/.gnupg/secring.gpg",
                 "PubringDir": "/home/yml/.gnupg/pubring.gpg",
                 "AccountDir": "/home/yml/Dropbox/company/secrets/passwords",
-                "RecipientKeysIds": "6A8D785C <add the list of space separated key>"
+                "RecipientKeyIds": "6A8D785C <add the list of space separated key>"
+                "SignerKeyID": "6A8D785C"
         }
-
 ]
 ``` 
 

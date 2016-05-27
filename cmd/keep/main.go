@@ -60,7 +60,7 @@ Options:
 	}
 	fmt.Println("Using profile : ", profile.Name)
 
-	conf := keep.NewConfigFromProfile(&profile)
+	conf := keep.NewConfig(&profile)
 	// Overriding the config with information from the cli parameters
 	accountDir, ok := args["--dir"].(string)
 	if ok {
@@ -68,7 +68,7 @@ Options:
 	}
 	recipients, ok := args["--recipients"].(string)
 	if ok {
-		conf.RecipientKeysIds = recipients
+		conf.RecipientKeyIds = recipients
 	}
 
 	if err != nil {

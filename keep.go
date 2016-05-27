@@ -156,47 +156,36 @@ func GuessPromptFunction() openpgp.PromptFunction {
 
 // Config represents the configuration required to work with GPG.
 type Config struct {
-	SecringDir       string
-	PubringDir       string
-	AccountDir       string
-	RecipientKeysIds string
-	PromptFunction   openpgp.PromptFunction
+	SecringDir      string
+	PubringDir      string
+	AccountDir      string
+	RecipientKeyIds string
+	SignerKeyID     string
+	PromptFunction  openpgp.PromptFunction
 }
 
-// NewConfig returns an initialized Config.
-func NewConfig() *Config {
-	gpgkey := os.Getenv("GPGKEY")
-	pubring := os.ExpandEnv(pubringDefault)
-	secring := os.ExpandEnv(secringDefault)
-	pwdDir := os.ExpandEnv(passwordDirDefault)
-
+// NewConfig returns an initialized Config with the information copied from a Profile. If nil Profile is passed we build one from DefaultProfile.
+func NewConfig(p *Profile) *Config {
+	if p == nil {
+		p = DefaultProfile()
+	}
 	return &Config{
-		SecringDir:       secring,
-		PubringDir:       pubring,
-		AccountDir:       pwdDir,
-		RecipientKeysIds: gpgkey,
-		PromptFunction:   GuessPromptFunction(),
+		SecringDir:      p.SecringDir,
+		PubringDir:      p.PubringDir,
+		AccountDir:      p.AccountDir,
+		RecipientKeyIds: p.RecipientKeyIds,
+		SignerKeyID:     p.SignerKeyID,
+		PromptFunction:  GuessPromptFunction(),
 	}
 }
 
-// NewConfigFromProfile returns an initialized Config with the information copied from a Profile.
-func NewConfigFromProfile(p *Profile) *Config {
-	return &Config{
-		SecringDir:       p.SecringDir,
-		PubringDir:       p.PubringDir,
-		AccountDir:       p.AccountDir,
-		RecipientKeysIds: p.RecipientKeysIds,
-		PromptFunction:   GuessPromptFunction(),
-	}
-}
-
-// EncryptionRecipients returns the openpgp.EntityList corresponding to the RecipientKeysIds from the Config.
-func (c *Config) EncryptionRecipients() (openpgp.EntityList, error) {
+// EntityListRecipients returns the openpgp.EntityList corresponding to the RecipientKeyIds from the Config.
+func (c *Config) EntityListRecipients() (openpgp.EntityList, error) {
 	el, err := getKeyRing(c.PubringDir)
 	if err != nil {
 		return nil, err
 	}
-	el = filterEntityList(el, c.RecipientKeysIds)
+	el = filterEntityList(el, c.RecipientKeyIds)
 	return el, nil
 }
 
@@ -207,7 +196,32 @@ func (c *Config) EntityListWithSecretKey() (openpgp.EntityList, error) {
 		return nil, err
 	}
 	return el, nil
+}
 
+// EntitySigner returns an Entity with a decrypted Private Key.
+func (c *Config) EntitySigner() (*openpgp.Entity, error) {
+	el, err := getKeyRing(c.SecringDir)
+	if err != nil {
+		return nil, err
+	}
+	el = filterEntityList(el, c.SignerKeyID)
+
+	if len(el) != 1 {
+		return nil, fmt.Errorf("Exactly one SignerKeyID must be given, received : %d", len(el))
+	}
+
+	// Decrypt the private key
+	prompt := GuessPromptFunction()
+	passphrase, err := prompt(el.DecryptionKeys(), false)
+	if err != nil {
+		return nil, err
+	}
+	signer := el[0]
+	err = signer.PrivateKey.Decrypt(passphrase)
+	if err != nil {
+		return nil, err
+	}
+	return signer, nil
 }
 
 // DecodeFile returns an io.Reader from which the content of the message can be read in clear text.
@@ -321,7 +335,7 @@ func (a Account) Bytes() []byte {
 
 // Encrypt returns the encrypted byte slice for an account.
 func (a *Account) Encrypt() ([]byte, error) {
-	el, err := a.config.EncryptionRecipients()
+	el, err := a.config.EntityListRecipients()
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +346,15 @@ func (a *Account) Encrypt() ([]byte, error) {
 		"PGP MESSAGE",
 		map[string]string{"Version": "OpenPGP"},
 	)
-	w, err := openpgp.Encrypt(aw, el, nil, nil, nil)
+	var signer *openpgp.Entity
+	if a.config.SignerKeyID != "" {
+		signer, err = a.config.EntitySigner()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	w, err := openpgp.Encrypt(aw, el, signer, nil, nil)
 	if err != nil {
 		return nil, err
 	}

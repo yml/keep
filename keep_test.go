@@ -10,8 +10,8 @@ import (
 )
 
 func TestNewConfig(t *testing.T) {
-	c := NewConfig()
-	el, err := c.EncryptionRecipients()
+	c := NewConfig(nil)
+	el, err := c.EntityListRecipients()
 	if err != nil {
 		t.Errorf("An error occured while retrieving the recipients for the ecrypted message: %v", err)
 	}
@@ -59,7 +59,7 @@ func Test_filterEntityList(t *testing.T) {
 
 func Test_DecryptFile(t *testing.T) {
 	encryptedfile := "test_data/passwords/account1"
-	c := NewConfig()
+	c := NewConfig(nil)
 	el, err := c.EntityListWithSecretKey()
 	if err != nil {
 		t.Errorf("An error occured while decrypting the privateKey %v", err)
@@ -81,7 +81,7 @@ func Test_DecryptFile(t *testing.T) {
 }
 
 func Test_EncryptFile(t *testing.T) {
-	c := NewConfig()
+	c := NewConfig(nil)
 	a := Account{
 		config:   c,
 		Name:     "name",
