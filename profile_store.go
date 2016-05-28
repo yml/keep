@@ -8,6 +8,12 @@ import (
 	"path/filepath"
 )
 
+const (
+	secringDefault     = "$HOME/.gnupg/secring.gpg"
+	pubringDefault     = "$HOME/.gnupg/pubring.gpg"
+	passwordDirDefault = "$HOME/.keep/passwords"
+)
+
 // Profile represents the information that can be persited to disk of a Config.
 type Profile struct {
 	Name            string

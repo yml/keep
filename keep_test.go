@@ -120,3 +120,18 @@ func Test_NewAccount(t *testing.T) {
 		t.Errorf("Not the expected password : %s", a.Password)
 	}
 }
+
+var genPassCases = []int{1, 2, 3, 10}
+
+func Test_NewPassword(t *testing.T) {
+	for _, l := range genPassCases {
+		passBytes, err := NewPassword(l)
+		if err != nil {
+			t.Error("An error occured while gnerating the password : %s", err)
+		}
+		fmt.Printf("Generated password is (length %d): %s \n", l, string(passBytes))
+		if len(passBytes) != l {
+			t.Errorf("passBytes lenght must be %d got : %d", l, len(passBytes))
+		}
+	}
+}

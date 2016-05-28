@@ -3,10 +3,12 @@ package keep
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,10 +22,21 @@ import (
 )
 
 const (
-	secringDefault     = "$HOME/.gnupg/secring.gpg"
-	pubringDefault     = "$HOME/.gnupg/pubring.gpg"
-	passwordDirDefault = "$HOME/.keep/passwords"
+	validChars = "abcdefijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ0123456789~-_=+(){}@#&$€"
 )
+
+func NewPassword(length int) ([]byte, error) {
+	password := make([]byte, length)
+	l := int64(len(validChars) - 1)
+	for i := 0; i < length; i++ {
+		randN, err := rand.Int(rand.Reader, big.NewInt(l))
+		if err != nil {
+			return nil, err
+		}
+		password[i] = validChars[randN.Int64()]
+	}
+	return password, nil
+}
 
 func getKeyRing(keyringPath string) (el openpgp.EntityList, err error) {
 	// Read in public key
@@ -276,10 +289,15 @@ func NewAccountFromConsole(conf *Config) (*Account, error) {
 	if err != nil {
 		return nil, err
 	}
-	password := string(bytePassword)
-	if password == "gen" {
-		return nil, fmt.Errorf("Password generation Not Implemented")
+
+	if bytes.Equal(bytePassword, []byte("gen")) {
+		bytePassword, err = NewPassword(10)
+		if err != nil {
+			return nil, err
+		}
 	}
+	password := string(bytePassword)
+
 	account := Account{
 		config:   conf,
 		Name:     strings.TrimSpace(name),
