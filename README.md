@@ -9,7 +9,7 @@
 The filename is the account name.
 
 **Notes :** 
-You can stop using keep and and leave with your data when ever you want.
+You can stop using keep and leave with your data when ever you want.
 Browse your files (accounts) : 
 
 * `ls ~/.keep/passwords/`
