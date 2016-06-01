@@ -88,6 +88,12 @@ Options:
 				os.Exit(1)
 			}
 
+			if account.IsSigned {
+				fmt.Println("Credentials have been signed by :", account.SignedBy.PrivateKey.KeyIdShortString())
+			} else {
+				fmt.Println("\nWARNING: This credential is not signed !!!\n")
+			}
+
 			fmt.Println("Name : ", account.Name)
 			fmt.Println("Username : ", account.Username)
 			fmt.Println("Notes : ", account.Notes)

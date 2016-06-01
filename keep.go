@@ -25,6 +25,7 @@ const (
 	validChars = "abcdefijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ0123456789~-_=+(){}@#&$€"
 )
 
+// NewPassword return a randomly generated password of the requested length
 func NewPassword(length int) ([]byte, error) {
 	password := make([]byte, length)
 	l := int64(len(validChars) - 1)
@@ -66,7 +67,7 @@ func filterEntityList(el openpgp.EntityList, recipients string) openpgp.EntityLi
 	return fel
 }
 
-func decodeFile(el openpgp.EntityList, pf openpgp.PromptFunction, fpath string) (io.Reader, error) {
+func decodeFile(el openpgp.EntityList, pf openpgp.PromptFunction, fpath string) (*openpgp.MessageDetails, error) {
 	// Get the encrypted file content as a []byte
 	f, err := os.Open(fpath)
 	if err != nil {
@@ -76,13 +77,8 @@ func decodeFile(el openpgp.EntityList, pf openpgp.PromptFunction, fpath string) 
 	if err != nil {
 		return nil, err
 	}
-
 	// Decrypt it with the contents of the private key
-	md, err := openpgp.ReadMessage(result.Body, el, pf, nil)
-	if err != nil {
-		return nil, err
-	}
-	return md.UnverifiedBody, nil
+	return openpgp.ReadMessage(result.Body, el, pf, nil)
 }
 
 func promptFromString(passphrase string) openpgp.PromptFunction {
@@ -107,7 +103,8 @@ func promptFunctionGpgAgent(conn *gpgagent.Conn) openpgp.PromptFunction {
 
 		for _, key := range keys {
 			cacheID := strings.ToUpper(hex.EncodeToString(key.PublicKey.Fingerprint[:]))
-			fmt.Println("short key", key.PrivateKey.KeyIdShortString())
+
+			fmt.Println("Private key short ID :", key.Entity.PrivateKey.KeyIdShortString())
 
 			request := gpgagent.PassphraseRequest{CacheKey: cacheID}
 			passphrase, err := conn.GetPassphrase(&request)
@@ -160,6 +157,7 @@ func GuessPromptFunction() openpgp.PromptFunction {
 	for _, val := range envs {
 		env := strings.Split(val, "=")
 		if len(env) == 2 && env[0] == "GPGPASSPHRASE" {
+			fmt.Println("Overriding PromptFunction to use Environ")
 			pf = promptFromString(env[1])
 			break
 		}
@@ -237,8 +235,8 @@ func (c *Config) EntitySigner() (*openpgp.Entity, error) {
 	return signer, nil
 }
 
-// DecodeFile returns an io.Reader from which the content of the message can be read in clear text.
-func (c *Config) DecodeFile(fpath string) (io.Reader, error) {
+// decodeFile returns an io.Reader from which the content of the message can be read in clear text.
+func (c *Config) decodeFile(fpath string) (*openpgp.MessageDetails, error) {
 	el, err := c.EntityListWithSecretKey()
 	if err != nil {
 		return nil, err
@@ -269,6 +267,10 @@ type Account struct {
 	Username string
 	Password string
 	Notes    string
+
+	// The following fields are valued when the account is read.
+	IsSigned bool
+	SignedBy *openpgp.Key // the key of the signer, if available
 }
 
 // NewAccountFromConsole returns an Account built with the elements collected by interacting with the user.
@@ -311,12 +313,22 @@ func NewAccountFromConsole(conf *Config) (*Account, error) {
 
 // NewAccountFromFile returns an Account as described by a file in the accountDir.
 func NewAccountFromFile(conf *Config, fpath string) (*Account, error) {
-	clearTextReader, err := conf.DecodeFile(fpath)
+	md, err := conf.decodeFile(fpath)
 	if err != nil {
 		return nil, err
+	} else if md.IsSigned && md.SignatureError != nil {
+		return nil, fmt.Errorf("A signature error has been detected in this accoun : %v", err)
 	}
 
-	return NewAccountFromReader(conf, filepath.Base(fpath), clearTextReader)
+	clearTextReader := md.UnverifiedBody
+	account, err := NewAccountFromReader(conf, filepath.Base(fpath), clearTextReader)
+
+	if md.IsSigned {
+		account.IsSigned = true
+		account.SignedBy = md.SignedBy
+	}
+
+	return account, err
 }
 
 func newAccountFromFileContent(conf *Config, name, str string) (*Account, error) {

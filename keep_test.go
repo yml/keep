@@ -64,11 +64,11 @@ func Test_DecryptFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("An error occured while decrypting the privateKey %v", err)
 	}
-
-	clearTextReader, err := decodeFile(el, GuessPromptFunction(), encryptedfile)
+	md, err := decodeFile(el, GuessPromptFunction(), encryptedfile)
 	if err != nil {
 		t.Errorf("An error occured while decoding the file : %s", err)
 	}
+	clearTextReader := md.UnverifiedBody
 
 	bytess, err := ioutil.ReadAll(clearTextReader)
 	if err != nil {
