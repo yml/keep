@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/atotto/clipboard"
 	"github.com/docopt/docopt-go"
@@ -18,6 +19,7 @@ const (
 
 var input string
 
+// printAndExitOnError exit the program with 1 as exit code after printing the message if the error is not nil.
 func printAndExitOnError(err error, msg string) {
 	if err != nil {
 		fmt.Println(msg, err)
@@ -25,11 +27,9 @@ func printAndExitOnError(err error, msg string) {
 	}
 }
 
-func printAccounts(conf *keep.Config, fileSubStr string) {
-	files, err := conf.ListAccountFiles(fileSubStr)
-	printAndExitOnError(err, "An error occured while listing the accounts")
-	for _, file := range files {
-		fmt.Println(file.Name())
+func printFileNames(files []os.FileInfo) {
+	for i, file := range files {
+		fmt.Printf("%d - %s\n", i, file.Name())
 	}
 }
 
@@ -38,7 +38,7 @@ func main() {
 	usage := `keep password manager
 
 Usage:
-	keep read [options] <file> [--print]
+	keep read [options] <file> [<number>] [--print]
 	keep list [options] [<file>]
 	keep add [options]
 
@@ -85,16 +85,42 @@ Options:
 		conf.RecipientKeyIds = recipients
 	}
 
+	//fmt.Println(args, "\n", conf)
 	if val, ok := args["read"]; ok == true && val == true {
 		fmt.Println("Reading ...\n")
 		fname, ok := args["<file>"].(string)
 		if ok {
+			accountPosition := -1
+			files, err := conf.ListAccountFiles(fname)
+			printAndExitOnError(err, "An error occured while gathering the accounts")
+			snumber, ok := args["<number>"].(string)
+			if ok {
+				accountPosition, err = strconv.Atoi(snumber)
+				printAndExitOnError(err, "An error occured while converting the <number> to an int")
+			}
+			switch l := len(files); {
+			case l == 1:
+				// Fall back to the name of the first match
+				f := files[0]
+				fname = f.Name()
+			case l > 1 && -1 < accountPosition && accountPosition < l:
+				f := files[accountPosition]
+				fname = f.Name()
+				fmt.Println("selecting filename :", fname)
+			case l == 0:
+				fmt.Println("No account name match :", fname)
+				os.Exit(exitCodeNotOk)
+			default:
+				fmt.Println("There is more than one match")
+				printFileNames(files)
+				os.Exit(exitCodeNotOk)
+			}
+
 			fpath := filepath.Join(conf.AccountDir, fname)
 			fmt.Println("file name:", fpath)
 			account, err := keep.NewAccountFromFile(conf, fpath)
 			if os.IsNotExist(err) {
 				fmt.Printf("Account name (%s) does not exist.\n Listing ...\n\n", fname)
-				printAccounts(conf, fname)
 				os.Exit(exitCodeNotOk)
 			}
 
@@ -130,8 +156,9 @@ Options:
 		if !ok {
 			fileSubStr = ""
 		}
-
-		printAccounts(conf, fileSubStr)
+		files, err := conf.ListAccountFiles(fileSubStr)
+		printAndExitOnError(err, "An error occured while gathering the accounts")
+		printFileNames(files)
 
 	} else if val, ok := args["add"]; ok == true && val == true {
 		fmt.Println("Adding ...\n")
@@ -150,5 +177,4 @@ Options:
 		err = ioutil.WriteFile(fpath, content, 0600)
 		printAndExitOnError(err, "An error occured while writing the new account to disk")
 	}
-	// fmt.Println(args, "\n", conf)
 }
