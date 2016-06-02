@@ -11,7 +11,27 @@ import (
 	"github.com/yml/keep"
 )
 
+const (
+	exitCodeOk    = 0
+	exitCodeNotOk = 1
+)
+
 var input string
+
+func printAndExitOnError(err error, msg string) {
+	if err != nil {
+		fmt.Println(msg, err)
+		os.Exit(exitCodeNotOk)
+	}
+}
+
+func printAccounts(conf *keep.Config, fileSubStr string) {
+	files, err := conf.ListAccountFiles(fileSubStr)
+	printAndExitOnError(err, "An error occured while listing the accounts")
+	for _, file := range files {
+		fmt.Println(file.Name())
+	}
+}
 
 func main() {
 
@@ -29,17 +49,11 @@ Options:
 	-c --clipboard         Copy password to the clipboard
 `
 
-	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.1", false)
-	if err != nil {
-		fmt.Println("Dopopt specification cannot be parsed", err)
-		os.Exit(1)
-	}
+	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.2", false)
+	printAndExitOnError(err, "Docopt specification cannot be parsed")
 
 	store, err := keep.LoadProfileStore()
-	if err != nil {
-		fmt.Println("An error occured while loading the profile store :", err)
-		os.Exit(1)
-	}
+	printAndExitOnError(err, "An error occured while loading the profile store")
 
 	// defaulting to the first profile
 	profile := store[0]
@@ -55,7 +69,7 @@ Options:
 		}
 		if !profileFound {
 			fmt.Printf("Profile (%s) not found\n", profileName)
-			os.Exit(1)
+			os.Exit(exitCodeNotOk)
 		}
 	}
 	fmt.Println("Using profile : ", profile.Name)
@@ -71,11 +85,6 @@ Options:
 		conf.RecipientKeyIds = recipients
 	}
 
-	if err != nil {
-		fmt.Println("An error occured while reading the password", err)
-		os.Exit(1)
-	}
-
 	if val, ok := args["read"]; ok == true && val == true {
 		fmt.Println("Reading ...\n")
 		fname, ok := args["<file>"].(string)
@@ -83,10 +92,13 @@ Options:
 			fpath := filepath.Join(conf.AccountDir, fname)
 			fmt.Println("file name:", fpath)
 			account, err := keep.NewAccountFromFile(conf, fpath)
-			if err != nil {
-				fmt.Println("An error occured while creating and account from the clear text reader", err)
-				os.Exit(1)
+			if os.IsNotExist(err) {
+				fmt.Printf("Account name (%s) does not exist.\n Listing ...\n\n", fname)
+				printAccounts(conf, fname)
+				os.Exit(exitCodeNotOk)
 			}
+
+			printAndExitOnError(err, "An error occured while creating and account from the clear text reader")
 
 			if account.IsSigned {
 				fmt.Println("Credentials have been signed by :", account.SignedBy.PrivateKey.KeyIdShortString())
@@ -109,10 +121,7 @@ Options:
 			}
 			if copyToclipboard {
 				err = clipboard.WriteAll(account.Password)
-				if err != nil {
-					fmt.Println("An error occured while writing the password to the clipboard", err)
-					os.Exit(1)
-				}
+				printAndExitOnError(err, "An error occured while writing the password to the clipboard")
 			}
 		}
 	} else if val, ok := args["list"]; ok == true && val == true {
@@ -122,40 +131,24 @@ Options:
 			fileSubStr = ""
 		}
 
-		files, err := conf.ListAccountFiles(fileSubStr)
-		if err != nil {
-			fmt.Printf("An error occured while listing the accounts", err)
-			os.Exit(1)
-		}
-		for _, file := range files {
-			fmt.Println(file.Name())
-		}
+		printAccounts(conf, fileSubStr)
 
 	} else if val, ok := args["add"]; ok == true && val == true {
 		fmt.Println("Adding ...\n")
 		account, err := keep.NewAccountFromConsole(conf)
-		if err != nil {
-			fmt.Println("An error occured while retrieving account info from the console :", err)
-			os.Exit(1)
-		}
+		printAndExitOnError(err, "An error occured while retrieving account info from the console :")
 
 		content, err := account.Encrypt()
-		if err != nil {
-			fmt.Println("An error occured while encrypting the account to bytes", err)
-			os.Exit(1)
-		}
+		printAndExitOnError(err, "An error occured while encrypting the account to bytes")
 
 		fpath := filepath.Join(conf.AccountDir, account.Name)
 		if _, err := os.Stat(fpath); !os.IsNotExist(err) {
 			fmt.Printf("Account %s already exists\n", fpath)
-			os.Exit(1)
+			os.Exit(exitCodeNotOk)
 		}
 		fmt.Println("Writing file :", fpath)
 		err = ioutil.WriteFile(fpath, content, 0600)
-		if err != nil {
-			fmt.Println("An error occured while writing the new account to disk", err)
-			os.Exit(1)
-		}
+		printAndExitOnError(err, "An error occured while writing the new account to disk")
 	}
 	// fmt.Println(args, "\n", conf)
 }

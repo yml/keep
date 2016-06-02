@@ -292,6 +292,9 @@ func NewAccountFromConsole(conf *Config) (*Account, error) {
 		return nil, err
 	}
 
+	// Making sure that we jump a line in the console after reading the Password
+	fmt.Printf("\n")
+
 	if bytes.Equal(bytePassword, []byte("gen")) {
 		bytePassword, err = NewPassword(10)
 		if err != nil {
