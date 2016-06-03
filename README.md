@@ -22,7 +22,7 @@ Display contents manually:
 `Keep` let you manage multiple **profiles**. A Profile is composed of :
 
 * A directory where the passwords are saved. The directory can be shared between users. The username, note and password are safely encrypted but the account name is visible by anyone that has access to the shared folder.
-* `RecipientKeysIds` A space separated list of GPG Key Id that the account should be encrypted to.
+* `RecipientKeyIds` A space separated list of GPG Key Id that the account should be encrypted to.
 
 ## Install
 

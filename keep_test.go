@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestNewConfig(t *testing.T) {
+func Test_NewConfig(t *testing.T) {
 	c := NewConfig(nil)
 	el, err := c.EntityListRecipients()
 	if err != nil {
@@ -20,6 +20,24 @@ func TestNewConfig(t *testing.T) {
 	}
 
 	fmt.Println(c.SecringDir, c.PubringDir)
+}
+
+func Test_ConfigListAccountsFile(t *testing.T) {
+	c := NewConfig(nil)
+	c.AccountDir = "test_data/passwords"
+	files, err := c.ListAccountFiles("testsuite-")
+	if err != nil {
+		t.Error("An error occured while listing accounts ", err)
+	}
+	if len(files) != 2 {
+		t.Error("expected exactly 2 accounts; got :", len(files))
+	}
+	c.AccountDir = "does-not-exist"
+	files, err = c.ListAccountFiles("")
+	if !os.IsNotExist(err) {
+		t.Error("Expected an os.IsNotExistError; got :", err)
+	}
+
 }
 
 func Test_getKeyRing(t *testing.T) {
@@ -58,7 +76,7 @@ func Test_filterEntityList(t *testing.T) {
 }
 
 func Test_DecryptFile(t *testing.T) {
-	encryptedfile := "test_data/passwords/account1"
+	encryptedfile := "test_data/passwords/testsuite-signed-account"
 	c := NewConfig(nil)
 	el, err := c.EntityListWithSecretKey()
 	if err != nil {
@@ -80,7 +98,7 @@ func Test_DecryptFile(t *testing.T) {
 	log.Println("Decrypted Secret:", decstr)
 }
 
-func Test_EncryptFile(t *testing.T) {
+func Test_AccountEncryptFile(t *testing.T) {
 	c := NewConfig(nil)
 	a := Account{
 		config:   c,

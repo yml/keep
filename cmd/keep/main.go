@@ -55,7 +55,7 @@ Examples:
 		keep read -c example.com
 `
 
-	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.2", false)
+	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.1", false)
 	printAndExitOnError(err, "Docopt specification cannot be parsed")
 
 	store, err := keep.LoadProfileStore()
