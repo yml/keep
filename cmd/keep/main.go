@@ -126,7 +126,6 @@ Examples:
 			// If there is more than one option and an accountPosition is given we are going to use it
 			f := files[*accountPosition]
 			fname = f.Name()
-			fmt.Println("selecting filename :", fname)
 		case l == 0:
 			// 0 matching account
 			fmt.Println("No account name match :", fname)
@@ -138,16 +137,14 @@ Examples:
 			os.Exit(exitCodeNotOk)
 		}
 
-		fpath := filepath.Join(conf.AccountDir, fname)
-		fmt.Println("file name:", fpath)
-		account, err := keep.NewAccountFromFile(conf, fpath)
+		account, err := keep.NewAccountFromFile(conf, fname)
 		if os.IsNotExist(err) {
 			fmt.Printf("Account name (%s) does not exist.\n Listing ...\n\n", fname)
 			os.Exit(exitCodeNotOk)
 		}
-
 		printAndExitOnError(err, "An error occured while creating and account from the clear text reader")
 
+		fmt.Println("file path :", account.Path())
 		if account.IsSigned {
 			fmt.Printf("Credentials have been signed by : %s\n\n", account.SignedBy.PrivateKey.KeyIdShortString())
 		} else {

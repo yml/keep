@@ -40,6 +40,15 @@ func Test_ConfigListAccountsFile(t *testing.T) {
 
 }
 
+func Test_Config_decodeFile(t *testing.T) {
+	c := NewConfig(nil)
+	c.AccountDir = "test_data/passwords"
+	_, err := c.decodeAccountFile("test_data/passwords/testsuite-signed-account")
+	if err != nil {
+		t.Error("An erro occured while reading the file", err)
+	}
+}
+
 func Test_getKeyRing(t *testing.T) {
 
 	path := os.ExpandEnv(pubringDefault)
@@ -90,7 +99,7 @@ func Test_DecryptFile(t *testing.T) {
 
 	bytess, err := ioutil.ReadAll(clearTextReader)
 	if err != nil {
-		t.Errorf("an error occured while reading the clear text message %v", err)
+		t.Errorf("an error occurred while reading the clear text message %v", err)
 	}
 	decstr := string(bytess)
 
@@ -98,7 +107,33 @@ func Test_DecryptFile(t *testing.T) {
 	log.Println("Decrypted Secret:", decstr)
 }
 
-func Test_AccountEncryptFile(t *testing.T) {
+func Test_Account_Path(t *testing.T) {
+	c := NewConfig(nil)
+	c.AccountDir = "/foo"
+	a := &Account{
+		config: c,
+		Name:   "bar",
+	}
+	expected := "/foo/bar"
+	got := a.Path()
+	if expected != got {
+		t.Error("An error occurred while evaluating the account path. Expected", expected, "got:", got)
+	}
+}
+
+func Test_NewAccountFromFile(t *testing.T) {
+	c := NewConfig(nil)
+	c.AccountDir = "test_data/passwords"
+	account, err := NewAccountFromFile(c, "testsuite-signed-account")
+	if err != nil {
+		t.Error("An error occurred while creating an account from a file", err)
+	}
+	if account.Username != "yml" {
+		t.Error("The username is not the one expected; got :", account.Username)
+	}
+}
+
+func Test_Account_EncryptFile(t *testing.T) {
 	c := NewConfig(nil)
 	a := Account{
 		config:   c,

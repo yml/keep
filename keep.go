@@ -236,7 +236,7 @@ func (c *Config) EntitySigner() (*openpgp.Entity, error) {
 }
 
 // decodeFile returns an io.Reader from which the content of the message can be read in clear text.
-func (c *Config) decodeFile(fpath string) (*openpgp.MessageDetails, error) {
+func (c *Config) decodeAccountFile(fpath string) (*openpgp.MessageDetails, error) {
 	el, err := c.EntityListWithSecretKey()
 	if err != nil {
 		return nil, err
@@ -271,6 +271,11 @@ type Account struct {
 	// The following fields are valued when the account is read.
 	IsSigned bool
 	SignedBy *openpgp.Key // the key of the signer, if available
+}
+
+// Path returns the theoretical path where the account file is.
+func (a *Account) Path() string {
+	return filepath.Join(a.config.AccountDir, a.Name)
 }
 
 // NewAccountFromConsole returns an Account built with the elements collected by interacting with the user.
@@ -315,8 +320,9 @@ func NewAccountFromConsole(conf *Config) (*Account, error) {
 }
 
 // NewAccountFromFile returns an Account as described by a file in the accountDir.
-func NewAccountFromFile(conf *Config, fpath string) (*Account, error) {
-	md, err := conf.decodeFile(fpath)
+func NewAccountFromFile(conf *Config, fname string) (*Account, error) {
+	fpath := filepath.Join(conf.AccountDir, fname)
+	md, err := conf.decodeAccountFile(fpath)
 	if err != nil {
 		return nil, err
 	} else if md.IsSigned && md.SignatureError != nil {
