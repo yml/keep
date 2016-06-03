@@ -127,7 +127,7 @@ func Test_NewPassword(t *testing.T) {
 	for _, l := range genPassCases {
 		passBytes, err := NewPassword(l)
 		if err != nil {
-			t.Error("An error occured while gnerating the password : %s", err)
+			t.Errorf("An error occured while gnerating the password : %s", err)
 		}
 		fmt.Printf("Generated password is (length %d): %s \n", l, string(passBytes))
 		if len(passBytes) != l {
