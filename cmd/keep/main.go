@@ -47,6 +47,12 @@ Options:
 	-d --dir=PATH          Account Directory
 	-p --profile=NAME      Profile name
 	-c --clipboard         Copy password to the clipboard
+
+Examples:
+
+	Read the account information for example.com:
+
+		keep read -c example.com
 `
 
 	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.0.2", false)
@@ -87,71 +93,80 @@ Options:
 
 	//fmt.Println(args, "\n", conf)
 	if val, ok := args["read"]; ok == true && val == true {
-		fmt.Println("Reading ...\n")
+		fmt.Printf("Reading ...\n\n")
 		fname, ok := args["<file>"].(string)
+		if !ok {
+			fmt.Println("An error occured while converting <file> into string")
+			os.Exit(exitCodeOk)
+		}
+
+		var accountPosition *int
+		snumber, ok := args["<number>"].(string)
 		if ok {
-			accountPosition := -1
-			files, err := conf.ListAccountFiles(fname)
-			printAndExitOnError(err, "An error occured while gathering the accounts")
-			snumber, ok := args["<number>"].(string)
-			if ok {
-				accountPosition, err = strconv.Atoi(snumber)
-				printAndExitOnError(err, "An error occured while converting the <number> to an int")
-			}
-			switch l := len(files); {
-			case l == 1:
-				// Fall back to the name of the first match
-				f := files[0]
-				fname = f.Name()
-			case l > 1 && -1 < accountPosition && accountPosition < l:
-				f := files[accountPosition]
-				fname = f.Name()
-				fmt.Println("selecting filename :", fname)
-			case l == 0:
-				fmt.Println("No account name match :", fname)
-				os.Exit(exitCodeNotOk)
-			default:
-				fmt.Println("There is more than one match")
-				printFileNames(files)
-				os.Exit(exitCodeNotOk)
-			}
+			number, err := strconv.Atoi(snumber)
+			printAndExitOnError(err, "An error occured while converting the <number> to an int")
+			accountPosition = &number
+		}
 
-			fpath := filepath.Join(conf.AccountDir, fname)
-			fmt.Println("file name:", fpath)
-			account, err := keep.NewAccountFromFile(conf, fpath)
-			if os.IsNotExist(err) {
-				fmt.Printf("Account name (%s) does not exist.\n Listing ...\n\n", fname)
-				os.Exit(exitCodeNotOk)
-			}
+		var copyToclipboard bool
+		if val, ok := args["-c"]; ok == true && val == true {
+			copyToclipboard = true
+		} else if val, ok := args["--clipboard"]; ok == true && val == true {
+			copyToclipboard = true
+		}
 
-			printAndExitOnError(err, "An error occured while creating and account from the clear text reader")
+		files, err := conf.ListAccountFiles(fname)
+		printAndExitOnError(err, "An error occured while gathering the accounts")
+		switch l := len(files); {
+		case l == 1:
+			// Automatically fallback to the first match if there is only one option
+			f := files[0]
+			fname = f.Name()
+		case l > 1 && accountPosition != nil && *accountPosition < l:
+			// If there is more than one option and an accountPosition is given we are going to use it
+			f := files[*accountPosition]
+			fname = f.Name()
+			fmt.Println("selecting filename :", fname)
+		case l == 0:
+			// 0 matching account
+			fmt.Println("No account name match :", fname)
+			os.Exit(exitCodeNotOk)
+		default:
+			// We couldn't guess what to do so we list all the options
+			fmt.Println("There is more than one match")
+			printFileNames(files)
+			os.Exit(exitCodeNotOk)
+		}
 
-			if account.IsSigned {
-				fmt.Println("Credentials have been signed by :", account.SignedBy.PrivateKey.KeyIdShortString())
-			} else {
-				fmt.Println("\nWARNING: This credential is not signed !!!\n")
-			}
+		fpath := filepath.Join(conf.AccountDir, fname)
+		fmt.Println("file name:", fpath)
+		account, err := keep.NewAccountFromFile(conf, fpath)
+		if os.IsNotExist(err) {
+			fmt.Printf("Account name (%s) does not exist.\n Listing ...\n\n", fname)
+			os.Exit(exitCodeNotOk)
+		}
 
-			fmt.Println("Name : ", account.Name)
-			fmt.Println("Username : ", account.Username)
-			fmt.Println("Notes : ", account.Notes)
-			if printOpt, ok := args["--print"]; ok && printOpt.(bool) == true {
-				fmt.Println("Password : ", account.Password)
-			}
+		printAndExitOnError(err, "An error occured while creating and account from the clear text reader")
 
-			copyToclipboard := false
-			if val, ok := args["-c"]; ok == true && val == true {
-				copyToclipboard = true
-			} else if val, ok := args["--clipboard"]; ok == true && val == true {
-				copyToclipboard = true
-			}
-			if copyToclipboard {
-				err = clipboard.WriteAll(account.Password)
-				printAndExitOnError(err, "An error occured while writing the password to the clipboard")
-			}
+		if account.IsSigned {
+			fmt.Printf("Credentials have been signed by : %s\n\n", account.SignedBy.PrivateKey.KeyIdShortString())
+		} else {
+			fmt.Printf("\nWARNING: This credential is not signed !!!\n\n")
+		}
+
+		fmt.Println("Name : ", account.Name)
+		fmt.Println("Username : ", account.Username)
+		fmt.Println("Notes : ", account.Notes)
+		if printOpt, ok := args["--print"]; ok && printOpt.(bool) == true {
+			fmt.Println("Password : ", account.Password)
+		}
+
+		if copyToclipboard {
+			err = clipboard.WriteAll(account.Password)
+			printAndExitOnError(err, "An error occured while writing the password to the clipboard")
 		}
 	} else if val, ok := args["list"]; ok == true && val == true {
-		fmt.Println("Listing ...\n")
+		fmt.Printf("Listing ...\n\n")
 		fileSubStr, ok := args["<file>"].(string)
 		if !ok {
 			fileSubStr = ""
@@ -161,7 +176,7 @@ Options:
 		printFileNames(files)
 
 	} else if val, ok := args["add"]; ok == true && val == true {
-		fmt.Println("Adding ...\n")
+		fmt.Printf("Adding ...\n\n")
 		account, err := keep.NewAccountFromConsole(conf)
 		printAndExitOnError(err, "An error occured while retrieving account info from the console :")
 

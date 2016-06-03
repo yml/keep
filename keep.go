@@ -104,7 +104,7 @@ func promptFunctionGpgAgent(conn *gpgagent.Conn) openpgp.PromptFunction {
 		for _, key := range keys {
 			cacheID := strings.ToUpper(hex.EncodeToString(key.PublicKey.Fingerprint[:]))
 
-			fmt.Println("Private key short ID :", key.Entity.PrivateKey.KeyIdShortString())
+			fmt.Println("Decoding private key short ID :", key.Entity.PrivateKey.KeyIdShortString())
 
 			request := gpgagent.PassphraseRequest{CacheKey: cacheID}
 			passphrase, err := conn.GetPassphrase(&request)
