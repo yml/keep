@@ -45,7 +45,7 @@ func Test_Config_decodeFile(t *testing.T) {
 	c.AccountDir = "test_data/passwords"
 	_, err := c.decodeAccountFile("test_data/passwords/testsuite-signed-account")
 	if err != nil {
-		t.Error("An erro occured while reading the file", err)
+		t.Error("An error occured while reading the file", err)
 	}
 }
 

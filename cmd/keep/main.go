@@ -44,7 +44,7 @@ Usage:
 	keep add [options]
 
 Options:
-	-r --recipients=KEYS   List of key ids the message should be encypted 
+	-r --recipients=KEYS   List of key ids the message should be encypted
 	-d --dir=PATH          Account Directory
 	-p --profile=NAME      Profile name
 	-c --clipboard         Copy password to the clipboard
@@ -56,7 +56,7 @@ Examples:
 		keep read -c example.com
 `
 
-	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.1", false)
+	args, err := docopt.Parse(usage, nil, true, "keep cli version: 0.2", false)
 	printAndExitOnError(err, "Docopt specification cannot be parsed")
 
 	store, err := keep.LoadProfileStore()
@@ -160,13 +160,16 @@ Examples:
 		}
 
 		if copyToclipboard {
+			// Grab the original clipboard value before changing it
+			original, err := clipboard.ReadAll()
 			err = clipboard.WriteAll(account.Password)
 			printAndExitOnError(err, "An error occured while writing the password to the clipboard")
-			defer func() {
+			defer func(s string) {
+				// restore the clipboard with the original value after 15s
 				time.Sleep(15 * time.Second)
-				err = clipboard.WriteAll("keep: cleared value")
+				err = clipboard.WriteAll(s)
 				printAndExitOnError(err, "An error occured while clearing the clipboard")
-			}()
+			}(original)
 		}
 	} else if val, ok := args["list"]; ok == true && val == true {
 		fmt.Printf("Listing ...\n\n")
