@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/docopt/docopt-go"
@@ -145,7 +146,7 @@ Examples:
 		printAndExitOnError(err, "An error occured while creating and account from the clear text reader")
 
 		fmt.Println("file path :", account.Path())
-		if account.IsSigned {
+		if account.IsSigned && account.SignedBy != nil {
 			fmt.Printf("Credentials have been signed by : %s\n\n", account.SignedBy.PrivateKey.KeyIdShortString())
 		} else {
 			fmt.Printf("\nWARNING: This credential is not signed !!!\n\n")
@@ -161,6 +162,11 @@ Examples:
 		if copyToclipboard {
 			err = clipboard.WriteAll(account.Password)
 			printAndExitOnError(err, "An error occured while writing the password to the clipboard")
+			defer func() {
+				time.Sleep(15 * time.Second)
+				err = clipboard.WriteAll("keep: cleared value")
+				printAndExitOnError(err, "An error occured while clearing the clipboard")
+			}()
 		}
 	} else if val, ok := args["list"]; ok == true && val == true {
 		fmt.Printf("Listing ...\n\n")
