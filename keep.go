@@ -97,14 +97,16 @@ func promptFromString(passphrase string) openpgp.PromptFunction {
 	}
 }
 
-func promptFunctionGpgAgent(conn *gpgagent.Conn) openpgp.PromptFunction {
+func promptFunctionGpgAgent() openpgp.PromptFunction {
 	return func(keys []openpgp.Key, symmetric bool) ([]byte, error) {
+		conn, err := gpgagent.NewGpgAgentConn()
+		if err != nil {
+			return nil, err
+		}
 		defer conn.Close()
 
 		for _, key := range keys {
 			cacheID := strings.ToUpper(hex.EncodeToString(key.PublicKey.Fingerprint[:]))
-
-			fmt.Println("Decoding private key short ID :", key.Entity.PrivateKey.KeyIdShortString())
 
 			request := gpgagent.PassphraseRequest{CacheKey: cacheID}
 			passphrase, err := conn.GetPassphrase(&request)
@@ -115,9 +117,9 @@ func promptFunctionGpgAgent(conn *gpgagent.Conn) openpgp.PromptFunction {
 			if err != nil {
 				err := conn.RemoveFromCache(cacheID)
 				if err != nil {
-					fmt.Println("cannot remove the key from cache", err)
+					err = fmt.Errorf("cannot remove the key from cache: %s", err)
 				}
-				fmt.Println("can t decrypt", err)
+				err = fmt.Errorf("can t decrypt: %s", err)
 				return nil, err
 			}
 			return []byte(passphrase), nil
@@ -149,8 +151,9 @@ func GuessPromptFunction() openpgp.PromptFunction {
 	pf := promptTerminal
 	conn, err := gpgagent.NewGpgAgentConn()
 	if err == nil {
-		pf = promptFunctionGpgAgent(conn)
+		pf = promptFunctionGpgAgent()
 	}
+	defer conn.Close()
 
 	// if GPGPASSPHRASE in Environ use it else request it when needed
 	envs := os.Environ()
@@ -222,8 +225,7 @@ func (c *Config) EntitySigner() (*openpgp.Entity, error) {
 	}
 
 	// Decrypt the private key
-	prompt := GuessPromptFunction()
-	passphrase, err := prompt(el.DecryptionKeys(), false)
+	passphrase, err := c.PromptFunction(el.DecryptionKeys(), false)
 	if err != nil {
 		return nil, err
 	}

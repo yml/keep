@@ -15,10 +15,46 @@
 			"revisionTime": "2016-02-16T23:20:12Z"
 		},
 		{
+			"checksumSHA1": "WuPOA1T+6qG/al2wgOzeJnAMkhE=",
+			"path": "github.com/gdamore/encoding",
+			"revision": "b23993cbb6353f0e6aa98d0ee318a34728f628b9",
+			"revisionTime": "2015-12-15T21:28:35Z"
+		},
+		{
+			"checksumSHA1": "QXdRgdWHgpOZLcmh96kQFX/vSLM=",
+			"path": "github.com/gdamore/tcell",
+			"revision": "62d7350d170ffa942c74ae40a99c8b0a6dcc8c95",
+			"revisionTime": "2017-05-01T21:23:58Z"
+		},
+		{
 			"checksumSHA1": "SO21ZxUqbAJb7R9pSZN35SuDPmM=",
 			"path": "github.com/jcmdev0/gpgagent",
 			"revision": "93ff243d728a743d7351cc2f6d6161b9f71218d0",
 			"revisionTime": "2015-04-26T16:52:05Z"
+		},
+		{
+			"checksumSHA1": "qQ/69O0QaXw/YCajx/sj+rgFzWw=",
+			"path": "github.com/lucasb-eyer/go-colorful",
+			"revision": "c900de9dbbc73129068f5af6a823068fc5f2308c",
+			"revisionTime": "2017-02-23T22:10:28Z"
+		},
+		{
+			"checksumSHA1": "0zkJ9tadsghcgK53mhDPnlxYwII=",
+			"path": "github.com/marcusolsson/tui-go",
+			"revision": "a9b7f8e630ce14390254de4ec4fd55dc329fcd23",
+			"revisionTime": "2017-05-07T10:25:21Z"
+		},
+		{
+			"checksumSHA1": "cJE7dphDlam/i7PhnsyosNWtbd4=",
+			"path": "github.com/mattn/go-runewidth",
+			"revision": "97311d9f7767e3d6f422ea06661bc2c7a19e8a5d",
+			"revisionTime": "2017-05-10T07:48:58Z"
+		},
+		{
+			"checksumSHA1": "L3leymg2RT8hFl5uL+5KP/LpBkg=",
+			"path": "github.com/mitchellh/go-wordwrap",
+			"revision": "ad45545899c7b13c020ea92b2072220eefad42b8",
+			"revisionTime": "2015-03-14T17:03:34Z"
 		},
 		{
 			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",
@@ -69,10 +105,28 @@
 			"revisionTime": "2017-05-16T11:44:04Z"
 		},
 		{
-			"checksumSHA1": "oS0UZOGWVVsVciOQ8nZJ582mFF8=",
+			"checksumSHA1": "IawG7xjKYf2JnFsj+3unrFidmJU=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "9ccfe848b9db8435a24c424abbc07a921adf1df5",
 			"revisionTime": "2017-04-27T03:54:25Z"
+		},
+		{
+			"checksumSHA1": "Mr4ur60bgQJnQFfJY0dGtwWwMPE=",
+			"path": "golang.org/x/text/encoding",
+			"revision": "19e51611da83d6be54ddafce4a4af510cb3e9ea4",
+			"revisionTime": "2017-04-21T08:09:44Z"
+		},
+		{
+			"checksumSHA1": "7kYqxy64WhMjFIFZgN7tJ3lbKxM=",
+			"path": "golang.org/x/text/encoding/internal/identifier",
+			"revision": "19e51611da83d6be54ddafce4a4af510cb3e9ea4",
+			"revisionTime": "2017-04-21T08:09:44Z"
+		},
+		{
+			"checksumSHA1": "ziMb9+ANGRJSSIuxYdRbA+cDRBQ=",
+			"path": "golang.org/x/text/transform",
+			"revision": "19e51611da83d6be54ddafce4a4af510cb3e9ea4",
+			"revisionTime": "2017-04-21T08:09:44Z"
 		}
 	],
 	"rootPath": "github.com/yml/keep"
