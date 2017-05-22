@@ -72,18 +72,18 @@ Options:
 	conf := keep.NewConfig(&profile)
 
 	// Setting up the interface
-	username := tui.NewLabel("")
-	notes := tui.NewLabel("")
-	password := tui.NewLabel("")
+	usernameLabel := tui.NewLabel("")
+	notesLabel := tui.NewLabel("")
+	passwordLabel := tui.NewLabel("")
 
 	showPasswordState := false
 	showPasswordBtn := tui.NewButton("[ show ]")
 	showPasswordBtn.OnActivated(func(b *tui.Button) {
 		if showPasswordState {
-			password.SetText(hiddenPassword)
+			passwordLabel.SetText(hiddenPassword)
 			showPasswordState = false
 		} else {
-			password.SetText(currentAcct.Password)
+			passwordLabel.SetText(currentAcct.Password)
 			showPasswordState = true
 		}
 	})
@@ -106,12 +106,11 @@ Options:
 		}(originalClipboard)
 	})
 
-	accountDetail := tui.NewGrid(0, 0)
-	accountDetail.AppendRow(tui.NewLabel("Username: "), username)
-	accountDetail.AppendRow(tui.NewLabel("Notes: "), notes)
-	accountDetail.AppendRow(tui.NewLabel(" Password: "), password, showPasswordBtn, copyPasswordBtn)
+	usernameBox := tui.NewVBox(usernameLabel)
+	notesBox := tui.NewVBox(notesLabel)
+	passwordBox := tui.NewHBox(passwordLabel, showPasswordBtn, copyPasswordBtn)
 
-	accountDetailBox := tui.NewVBox(accountDetail)
+	accountDetailBox := tui.NewVBox(usernameBox, notesBox, passwordBox)
 	accountDetailBox.SetBorder(true)
 	accountDetailBox.SetSizePolicy(tui.Preferred, tui.Preferred)
 
@@ -120,9 +119,9 @@ Options:
 	accountList.OnSelectionChanged(func(l *tui.List) {
 		fname := accountList.SelectedItem()
 		currentAcct = getAccount(conf, fname)
-		username.SetText(currentAcct.Name)
-		notes.SetText(currentAcct.Notes)
-		password.SetText(hiddenPassword)
+		usernameLabel.SetText(currentAcct.Name)
+		notesLabel.SetText(currentAcct.Notes)
+		passwordLabel.SetText(hiddenPassword)
 	})
 
 	accountBox := tui.NewHBox(accountList, accountDetailBox)
