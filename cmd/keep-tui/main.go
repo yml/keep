@@ -4,7 +4,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/atotto/clipboard"
 	docopt "github.com/docopt/docopt-go"
 	tui "github.com/marcusolsson/tui-go"
 	"github.com/yml/keep"
@@ -59,8 +61,13 @@ Options:
 			os.Exit(exitCodeNotOk)
 		}
 	}
-	// TODO: writing the profile.Name in the status bar
-	//fmt.Println("Using profile : ", profile.Name)
+
+	statusBar := tui.NewStatusBar("")
+	statusBox := tui.NewVBox(statusBar)
+	statusBox.SetTitle("Status")
+	statusBox.SetBorder(true)
+
+	statusBar.SetText(fmt.Sprintf("Using profile : %s", profile.Name))
 
 	conf := keep.NewConfig(&profile)
 
@@ -81,10 +88,28 @@ Options:
 		}
 	})
 
+	copyPasswordBtn := tui.NewButton("[ Copy ]")
+	copyPasswordBtn.OnActivated(func(b *tui.Button) {
+		// Grab the original clipboard value before changing it
+		originalClipboard, err := clipboard.ReadAll()
+		if err != nil {
+			statusBar.SetText(fmt.Sprintf("Error: Could not copy from clipboard : %s", err))
+		}
+		err = clipboard.WriteAll(currentAcct.Password)
+		if err != nil {
+			statusBar.SetText(fmt.Sprintf("Error: Could not paste to clipboard : %s", err))
+		}
+		go func(s string) {
+			time.Sleep(15 * time.Second)
+			err = clipboard.WriteAll(s)
+			statusBar.SetText(fmt.Sprintf("Error: Could not restore the clipboard: %s", err))
+		}(originalClipboard)
+	})
+
 	accountDetail := tui.NewGrid(0, 0)
 	accountDetail.AppendRow(tui.NewLabel("Username: "), username)
 	accountDetail.AppendRow(tui.NewLabel("Notes: "), notes)
-	accountDetail.AppendRow(tui.NewLabel(" Password: "), password, showPasswordBtn)
+	accountDetail.AppendRow(tui.NewLabel(" Password: "), password, showPasswordBtn, copyPasswordBtn)
 
 	accountDetailBox := tui.NewVBox(accountDetail)
 	accountDetailBox.SetBorder(true)
@@ -110,16 +135,20 @@ Options:
 	filterEntry.OnSubmit(func(e *tui.Entry) {
 		filter = e.Text()
 		accountList.RemoveItems()
-		accountList.AddItems(fetchAccounts(conf, filter)...)
+		accounts := fetchAccounts(conf, filter)
+		accountList.AddItems(accounts...)
 		accountList.SetSelected(0)
+		if len(accounts) == 0 {
+			statusBar.SetText("No account matching: " + filter)
+		}
 	})
 
 	filterBox := tui.NewVBox(filterEntry)
 	filterBox.SetTitle("Search an account")
 	filterBox.SetBorder(true)
 
-	tui.DefaultFocusChain.Set(filterEntry, accountList, showPasswordBtn)
-	listSreen := tui.NewVBox(filterBox, accountBox)
+	tui.DefaultFocusChain.Set(filterEntry, accountList, showPasswordBtn, copyPasswordBtn)
+	listSreen := tui.NewVBox(filterBox, accountBox, statusBox)
 	ui := tui.New(listSreen)
 	ui.SetKeybinding(tui.KeyEsc, func() { ui.Quit() })
 
