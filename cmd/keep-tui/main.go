@@ -74,6 +74,7 @@ Options:
 	// Setting up the interface
 	usernameLabel := tui.NewLabel("")
 	notesLabel := tui.NewLabel("")
+	notesLabel.SetWordWrap(true)
 	passwordLabel := tui.NewLabel("")
 
 	showPasswordState := false
