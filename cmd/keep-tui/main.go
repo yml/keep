@@ -103,7 +103,9 @@ Options:
 		go func(s string) {
 			time.Sleep(15 * time.Second)
 			err = clipboard.WriteAll(s)
-			statusBar.SetText(fmt.Sprintf("Error: Could not restore the clipboard: %s", err))
+			if err != nil {
+				statusBar.SetText(fmt.Sprintf("Error: Could not restore the clipboard: %s", err))
+			}
 		}(originalClipboard)
 	})
 
@@ -112,22 +114,26 @@ Options:
 	passwordBox := tui.NewHBox(passwordLabel, showPasswordBtn, copyPasswordBtn)
 
 	accountDetailBox := tui.NewVBox(usernameBox, notesBox, passwordBox)
+	accountDetailBox.SetTitle("Account details")
 	accountDetailBox.SetBorder(true)
 	accountDetailBox.SetSizePolicy(tui.Preferred, tui.Preferred)
 
 	accountList := tui.NewList()
-	accountList.SetSelected(0)
 	accountList.OnSelectionChanged(func(l *tui.List) {
-		fname := accountList.SelectedItem()
-		currentAcct = getAccount(conf, fname)
-		usernameLabel.SetText(currentAcct.Name)
-		notesLabel.SetText(currentAcct.Notes)
-		passwordLabel.SetText(hiddenPassword)
+		if accountList.Length() > 0 {
+			fname := accountList.SelectedItem()
+			currentAcct = getAccount(conf, fname)
+			usernameLabel.SetText(currentAcct.Name)
+			notesLabel.SetText(currentAcct.Notes)
+			passwordLabel.SetText(hiddenPassword)
+		}
 	})
 
-	accountBox := tui.NewHBox(accountList, accountDetailBox)
-	accountBox.SetTitle(" Accounts ")
-	accountBox.SetBorder(true)
+	accountListBox := tui.NewVBox(accountList)
+	accountListBox.SetTitle("Accounts")
+	accountListBox.SetBorder(true)
+
+	accountBox := tui.NewHBox(accountListBox, accountDetailBox)
 	accountBox.SetSizePolicy(tui.Expanding, tui.Expanding)
 
 	filterEntry := tui.NewEntry()
@@ -136,10 +142,11 @@ Options:
 		filter = e.Text()
 		accountList.RemoveItems()
 		accounts := fetchAccounts(conf, filter)
-		accountList.AddItems(accounts...)
-		accountList.SetSelected(0)
 		if len(accounts) == 0 {
 			statusBar.SetText("No account matching: " + filter)
+		} else {
+			accountList.AddItems(accounts...)
+			accountList.SetSelected(0)
 		}
 	})
 
@@ -149,7 +156,15 @@ Options:
 
 	tui.DefaultFocusChain.Set(filterEntry, accountList, showPasswordBtn, copyPasswordBtn)
 	listSreen := tui.NewVBox(filterBox, accountBox, statusBox)
+
+	theme := tui.NewTheme()
+	theme.SetStyle("box.focused", tui.Style{Fg: tui.ColorYellow, Bg: tui.ColorDefault})
+	theme.SetStyle("list.item.selected", tui.Style{Fg: tui.ColorYellow, Bg: tui.ColorDefault})
+	theme.SetStyle("button.focused", tui.Style{Fg: tui.ColorYellow, Bg: tui.ColorDefault})
+
 	ui := tui.New(listSreen)
+	ui.SetTheme(theme)
+
 	ui.SetKeybinding(tui.KeyEsc, func() { ui.Quit() })
 
 	if err := ui.Run(); err != nil {
