@@ -54,6 +54,7 @@ func (b *Box) SetBorder(enabled bool) {
 	b.border = enabled
 }
 
+// SetTitle sets the title of the box.
 func (b *Box) SetTitle(title string) {
 	b.title = title
 }
@@ -63,13 +64,30 @@ func (b *Box) Alignment() Alignment {
 	return b.alignment
 }
 
+// IsFocused return true if one of the children is focused.
+func (b *Box) IsFocused() bool {
+	for _, w := range b.children {
+		if w.IsFocused() {
+			return true
+		}
+	}
+	return false
+}
+
 // Draw recursively draws the children it contains.
 func (b *Box) Draw(p *Painter) {
+	style := "box"
+	if b.IsFocused() {
+		style += ".focused"
+	}
+
 	sz := b.Size()
 
 	if b.border {
-		p.DrawRect(0, 0, sz.X, sz.Y)
-		p.WithMask(image.Rect(2, 0, sz.X-3, 0)).DrawText(2, 0, b.title)
+		p.WithStyle(style, func(p *Painter) {
+			p.DrawRect(0, 0, sz.X, sz.Y)
+			p.WithMask(image.Rect(2, 0, sz.X-3, 0)).DrawText(2, 0, b.title)
+		})
 
 		p.Translate(1, 1)
 		defer p.Restore()
